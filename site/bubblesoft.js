@@ -2,11 +2,20 @@
  * Created by qhyang on 2017/4/20.
  */
 
-const express = require('express');
+const express = require('express'),
+    credentials = require("./credentials");
 
 const app = express();
 
 app.set('port', process.env.PORT || 3000);
+
+let auth = require("./controllers/auth")(app, {
+    providers: credentials.authProviders,
+    successRedirect: '/home',
+    failureRedirect: '/home'
+});
+auth.init();
+auth.registerRoutes();
 
 require("./controllers/weather").registerRoutes(app);
 
