@@ -2,8 +2,14 @@
  * Created by qhyang on 2017/5/2.
  */
 
-const mongoose = _require('mongoose'),
-    credentials = require("./credentials");
+const express = require('express'),
+    mongoose = require('mongoose');
+
+mongoose.Promise = Promise;
+
+const credentials = require("./credentials");
+
+const app = express();
 
 let opts = {
         server: {

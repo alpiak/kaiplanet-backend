@@ -10,7 +10,7 @@ let options = {
     target: 'https://api.darksky.net', // Target host
     changeOrigin: true, // Needed for virtual hosted sites
     pathRewrite: {
-        '^/weather' : '/forecast/' + require("../credentials").darkSkyKey + "/" // Add base path
+        '^/weather' : '/forecast/' + require('../credentials').darkSkyKey + '/' // Add base path
     }
 };
 

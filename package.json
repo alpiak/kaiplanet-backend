@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node site/bubblesoft.js",
+    "debug": "node --inspect-brk site/bubblesoft.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,7 +20,11 @@
   "homepage": "https://github.com/bubblesoft/bubblesoft-backend#readme",
   "dependencies": {
     "express": "^4.15.2",
+    "express-session": "^1.15.4",
+    "express-sessions": "^1.0.6",
     "mongoose": "^4.9.5",
+    "mongoose-auto-increment": "^5.0.1",
+    "mongoose-findorcreate": "^2.0.0",
     "passport": "^0.3.2",
     "passport-baidu": "0.0.1"
   },

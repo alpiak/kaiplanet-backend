@@ -17,7 +17,7 @@ let auth = require("./controllers/auth")(app, {
 auth.init();
 auth.registerRoutes();
 
-require("./controllers/weather").registerRoutes(app);
+require('./controllers/weather').registerRoutes(app);
 
 // 404 page
 app.use(function(req, res) {

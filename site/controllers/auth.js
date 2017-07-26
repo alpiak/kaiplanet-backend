@@ -6,6 +6,19 @@ const express = require('express'),
     passport = require('passport'),
     BaiduStrategy = require('passport-baidu').Strategy;
 
+passport.serializeUser(function(user, done) {
+    done(null, user.id);
+});
+
+const User = require('../models/users');
+
+passport.deserializeUser(function(id, done) {
+    User.findById(id, function(err, user) {
+        if (err || !user) return done(err, null);
+        done(err, user);
+    });
+});
+
 module.exports = function (app, options) {
     if (!options.successRedirect) {
         options.successRedirect = '/home';
@@ -16,30 +29,51 @@ module.exports = function (app, options) {
 
     return {
         init: function() {
+            const bubblesoftConnection = require('../db').bubblesoftConnection;
+
+            app.use(require('express-session')({
+                secret: require('../credentials').cookieSecret,
+                resave: true,
+                saveUninitialized: false,
+                cookie: { maxAge: 2628000000 },
+                store: new (require('express-sessions'))({
+                    storage: 'mongodb',
+                    instance: bubblesoftConnection,
+                    expire: 86400
+                })
+            }));
+
             const env = app.get('env'),
                 config = options.providers;
 
             passport.use(new BaiduStrategy({
                 clientID: config.baidu[env].appId,
                 clientSecret: config.baidu[env].appSecret,
-                callbackURL: "/auth/baidu/callback"
+                callbackURL: '/auth/baidu/callback'
             }, function(accessToken, refreshToken, profile, done) {
-                // User.findOrCreate({ baiduId: profile.id }, function (err, user) {
-                //     return done(err, user);
-                // });
-                console.log(profile.id);
+                const User = require('../models/users');
+
+                //TODO: console.log(profile);
+                User.findOrCreate({ baiduId: profile.id }, function (err, user, created) {
+                    return done(err, user);
+                });
             }));
 
             app.use(passport.initialize());
             app.use(passport.session());
         },
         registerRoutes: function() {
-            app.get('/auth/baidu', passport.authenticate('baidu'));
+            app.get('/auth/baidu', function (req, res, next) {
+                passport.authenticate('baidu', {
+                    callbackURL: '/auth/baidu/callback' + (req.query.redirect ? "?redirect=" + encodeURIComponent(req.query.redirect): '')
+                })(req, res, next);
+            });
 
             app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: '/home' }), function(req, res) {
                 // If this function gets called, authentication was successful.
                 // `req.user` contains the authenticated user.
-                console.log(req.user.username);
+                //TODO: console.log(req.user);
+                res.redirect(303, req.query.redirect || options.successRedirect);
             });
         }
     };
