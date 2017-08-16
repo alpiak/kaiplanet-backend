@@ -4,7 +4,9 @@
 
 const mongoose = require('mongoose'),
     userSchema = new mongoose.Schema({
-        baiduId: String
+        baiduId: { type: String, unique: true },
+        nickName: String,
+        birthday: Date
     }),
     autoIncrement = require('mongoose-auto-increment'),
     findOrCreate = require('mongoose-findorcreate'),

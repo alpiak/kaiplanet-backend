@@ -21,10 +21,10 @@ passport.deserializeUser(function(id, done) {
 
 module.exports = function (app, options) {
     if (!options.successRedirect) {
-        options.successRedirect = '/home';
+        options.successRedirect = require('../config').urlBase + '/home';
     }
     if (!options.failureRedirect) {
-        options.failureRedirect = '/home';
+        options.failureRedirect = require('../config').urlBase + '/home';
     }
 
     return {
@@ -53,8 +53,10 @@ module.exports = function (app, options) {
             }, function(accessToken, refreshToken, profile, done) {
                 const User = require('../models/users');
 
-                //TODO: console.log(profile);
-                User.findOrCreate({ baiduId: profile.id }, function (err, user, created) {
+                User.findOrCreate({ baiduId: profile.id }, {
+                    nickName: profile.username,
+                    birthday: profile.birthday
+                }, function (err, user) {
                     return done(err, user);
                 });
             }));

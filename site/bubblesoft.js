@@ -11,13 +11,14 @@ app.set('port', process.env.PORT || 3000);
 
 let auth = require("./controllers/auth")(app, {
     providers: credentials.authProviders,
-    successRedirect: '/home',
-    failureRedirect: '/home'
+    successRedirect: require('./config').urlBase + '/home',
+    failureRedirect: require('./config').urlBase + '/home'
 });
 auth.init();
 auth.registerRoutes();
 
 require('./controllers/weather').registerRoutes(app);
+require('./controllers/user').registerRoutes(app);
 
 // 404 page
 app.use(function(req, res) {
