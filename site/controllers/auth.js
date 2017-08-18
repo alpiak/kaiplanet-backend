@@ -64,6 +64,7 @@ module.exports = function (app, options) {
             app.use(passport.initialize());
             app.use(passport.session());
         },
+
         registerRoutes: function() {
             app.get('/auth/baidu', function (req, res, next) {
                 passport.authenticate('baidu', {
@@ -71,7 +72,7 @@ module.exports = function (app, options) {
                 })(req, res, next);
             });
 
-            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: '/home' }), function(req, res) {
+            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: require('../config').urlBase + '/home' }), function(req, res) {
                 // If this function gets called, authentication was successful.
                 // `req.user` contains the authenticated user.
                 //TODO: console.log(req.user);
