@@ -16,8 +16,8 @@ module.exports = {
     authProviders: {
         baidu: {
             development: {
-                appId: '0F1NaaZ5RQQaRd1cx7jyRBrX',
-                appSecret: 'BvRFZ0ciVp3NDVwo98mSGIGn5CpO6c4G',
+                appId: 'AKuPWCF1NAvjzcdg6iHa8i8E',
+                appSecret: 'GDOEBvSWuRFuVHGn6rlteZVwEZexUP7B',
             }
         }
     },

@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/bubblesoft/bubblesoft-backend#readme",
   "dependencies": {
+    "body-parser": "^1.17.2",
     "express": "^4.15.2",
     "express-session": "^1.15.4",
     "express-sessions": "^1.0.6",

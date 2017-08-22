@@ -54,9 +54,24 @@ module.exports = function (app, options) {
                 const User = require('../models/users');
 
                 User.findOrCreate({ baiduId: profile.id }, {
-                    nickName: profile.username,
-                    birthday: profile.birthday
+                    nickName: profile.displayName || profile.username,
+                    birthday: profile.birthday || '',
+                    gender: (() => {
+                        switch (profile.gender) {
+                            case '0':
+                                return 0;
+                            case '1':
+                                return 1;
+                            case '2':
+                                return 2;
+                            default:
+                                return 0;
+                        }
+                    })(),
+                    gridStackData: '[{"x":0,"y":0,"width":12,"height":2,"type":"header","zIndex":3}'
                 }, function (err, user) {
+                    user.lastLogin =  Date.now();
+                    user.save();
                     return done(err, user);
                 });
             }));

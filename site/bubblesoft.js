@@ -3,9 +3,15 @@
  */
 
 const express = require('express'),
-    credentials = require("./credentials");
+    bodyParser = require('body-parser');
+
+const credentials = require('./credentials');
 
 const app = express();
+
+app.use(bodyParser.urlencoded({
+    extended: false
+}));
 
 app.set('port', process.env.PORT || 3000);
 
@@ -28,7 +34,7 @@ app.use(function(req, res) {
 });
 
 // 500 page
-app.use(function(err, req, res, next) {
+app.use(function(err, req, res) {
     console.error(err.stack);
     res.type('text/plain');
     res.status(500);
