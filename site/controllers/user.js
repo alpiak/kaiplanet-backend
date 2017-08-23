@@ -8,29 +8,13 @@ const User = require('../models/users');
 
 module.exports = {
     registerRoutes: function(app) {
-        app.post('/user/info/get', this.getUserInfo);
         app.post('/user/info/update', this.updateUserInfo);
-        app.post('/user/gridstack/update', this.updateUserGridStackData);
+        app.post('/user/info/get', this.getUserInfo);
+        app.post('/user/gridstack/update', this.updateGridStackData);
+        app.post('/user/gridstack/get', this.getGridStackData);
         app.post('/user/logout', this.logOut);
     },
 
-    getUserInfo: function (req, res, next) {
-        if (!req.user) {
-            return res.json({
-                code: -1,
-                message:  'Session Invalid'
-            });
-        }
-        User.findById(req.user._id, function (err, user) {
-            if (err) {
-                return next();
-            }
-            return res.json({
-                code: 1,
-                data: user
-            });
-        });
-    },
     updateUserInfo: function (req, res, next) {
         User.findById(req.user._id, function (err, user) {
             if (err) {
@@ -55,12 +39,33 @@ module.exports = {
             });
         });
     },
-    updateUserGridStackData: function (req, res, next) {
+    getUserInfo: function (req, res, next) {
+        if (!req.user) {
+            return res.json({
+                code: -1,
+                message:  'Session Invalid'
+            });
+        }
         User.findById(req.user._id, function (err, user) {
             if (err) {
                 return next();
             }
-                user.gridStackData = req.body.data;
+            return res.json({
+                code: 1,
+                data: {
+                    nickName: user.nickName,
+                    gender: user.gender,
+                    birthday: user.birthday,
+                }
+            });
+        });
+    },
+    updateGridStackData: function (req, res, next) {
+        User.findById(req.user._id, function (err, user) {
+            if (err) {
+                return next();
+            }
+            user.gridStackData = req.body.data;
             user.save((err) => {
                 if (err) {
                     return res.json({
@@ -72,6 +77,17 @@ module.exports = {
                     code: 1,
                     message: 'Update Success'
                 });
+            });
+        });
+    },
+    getGridStackData: function (req, res, next) {
+        User.findById(req.user._id, function (err, user) {
+            if (err) {
+                return next();
+            }
+            return res.json({
+                code: 1,
+                data: user.gridStackData
             });
         });
     },
