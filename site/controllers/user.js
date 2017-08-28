@@ -16,6 +16,12 @@ module.exports = {
     },
 
     updateUserInfo: function (req, res, next) {
+        if (!req.user) {
+            return res.json({
+                code: -1,
+                message:  'Session Invalid'
+            });
+        }
         User.findById(req.user._id, function (err, user) {
             if (err) {
                 return next();
@@ -61,6 +67,12 @@ module.exports = {
         });
     },
     updateGridStackData: function (req, res, next) {
+        if (!req.user) {
+            return res.json({
+                code: -1,
+                message:  'Session Invalid'
+            });
+        }
         User.findById(req.user._id, function (err, user) {
             if (err) {
                 return next();
@@ -70,7 +82,7 @@ module.exports = {
                 if (err) {
                     return res.json({
                         code: -1,
-                        message: 'Update Failed - ' + error.message
+                        message: 'Update Failed - ' + err.message
                     });
                 }
                 res.json({
@@ -81,6 +93,12 @@ module.exports = {
         });
     },
     getGridStackData: function (req, res, next) {
+        if (!req.user) {
+            return res.json({
+                code: -1,
+                message:  'Session Invalid'
+            });
+        }
         User.findById(req.user._id, function (err, user) {
             if (err) {
                 return next();
