@@ -21,6 +21,14 @@ module.exports = {
             }
         }
     },
+    storage: {
+        ali: {
+            development: {
+                accessKeyId: 'LTAITxy7FilZOMIQ',
+                accessKeySecret: 'C5eGXEVHHeQZrXsfnazPOzxWZZV9R7'
+            }
+        }
+    },
     cookieSecret: 'correct horse battery staple',
     darkSkyKey: '5e1c8c7eab6320aa615d40e3af1aa644'
 };

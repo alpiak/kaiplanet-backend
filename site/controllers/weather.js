@@ -28,7 +28,7 @@ module.exports = {
                     data += chunk;
                 });
                 darkSkyRes.on('end', () => {
-                    res.send(data);
+                    res.send('{"code":1,"data":' + data + '}');
                 });
             })
                 .on('error', (err) => {

@@ -19,10 +19,13 @@
   },
   "homepage": "https://github.com/bubblesoft/bubblesoft-backend#readme",
   "dependencies": {
+    "ali-oss": "^4.10.1",
     "body-parser": "^1.17.2",
+    "co": "^4.6.0",
     "express": "^4.15.2",
     "express-session": "^1.15.4",
     "express-sessions": "^1.0.6",
+    "formidable": "^1.1.1",
     "mongoose": "^4.9.5",
     "mongoose-auto-increment": "^5.0.1",
     "mongoose-findorcreate": "^2.0.0",

@@ -25,6 +25,7 @@ auth.registerRoutes();
 
 require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
+require('./controllers/upload').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
 
 // 404 page
