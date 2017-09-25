@@ -13,6 +13,7 @@ module.exports = {
         app.post('/user/gridstack/update', this.updateGridStackData);
         app.post('/user/gridstack/get', this.getGridStackData);
         app.post('/user/logout', this.logOut);
+        app.post('/user/drawingboardimg', this.uploadDrawingBoardImage);
     },
 
     updateUserInfo: function (req, res, next) {
@@ -112,5 +113,32 @@ module.exports = {
     logOut: function (req, res) {
         req.logout();
         return res.status(200).end();
+    },
+    uploadDrawingBoardImage: function (req, res) {
+        if (!req.user) {
+            return res.json({
+                code: 2,
+                message: 'User Not Logged In'
+            });
+        }
+
+        const fileData = Buffer.from(req.body.data, 'base64');
+
+        require('../libraries/file')().uploadFilesToAliyun({
+            img: {
+                buffer: fileData,
+                name: req.user.userId + '_' + req.body.name
+            }
+        }, 'md5', req.body.unique).then(results => {
+            res.json({
+                code: 1,
+                data: results
+            });
+        }, err => {
+            res.json({
+                code: -1,
+                message: 'Upload Failed - ' + err.message
+            });
+        });
     }
 };
