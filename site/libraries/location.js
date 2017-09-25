@@ -6,10 +6,10 @@ const http = require('http');
 
 module.exports = function () {
     return {
-        getCoordinates: function (ip, successCallback, failCallback) {
+        getLocation: function (ip, successCallback, failCallback) {
             const options = {
                 hostname: 'ip-api.com',
-                path: '/json/' + '220.181.57.217', //TODO: ip
+                path: '/json/' + '61.129.65.58', //TODO: ip
                 method: 'GET'
             };
 
@@ -25,8 +25,11 @@ module.exports = function () {
                     const dataParsed = JSON.parse(data);
 
                     successCallback({
-                        latitude: dataParsed.lat,
-                        longitude: dataParsed.lon
+                        coords: {
+                            latitude: dataParsed.lat,
+                            longitude: dataParsed.lon
+                        },
+                        city: dataParsed.city
                     });
                 });
             })

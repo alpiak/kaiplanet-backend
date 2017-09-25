@@ -12,13 +12,12 @@ module.exports = {
     darkSky: (req, res) => {
         const ip = require('../libraries/request')(req).getClientIp();
 
-        require('../libraries/location')().getCoordinates(ip, (coords) => {
+        require('../libraries/location')().getLocation(ip, (location) => {
             const options = {
                 hostname: 'api.darksky.net',
-                path: '/forecast/' + require('../credentials').darkSkyKey + '/' + coords.latitude + ',' + coords.longitude,
+                path: '/forecast/' + require('../credentials').darkSkyKey + '/' + location.coords.latitude + ',' + location.coords.longitude,
                 method: 'GET'
             };
-
             https.request(options, (darkSkyRes) => {
                 darkSkyRes.setEncoding('utf8');
 
@@ -28,7 +27,7 @@ module.exports = {
                     data += chunk;
                 });
                 darkSkyRes.on('end', () => {
-                    res.send('{"code":1,"data":' + data + '}');
+                    res.send('{"code":1,"data":{"detail":' + data + ',"location":{"city":"' + location.city + '"}}}');
                 });
             })
                 .on('error', (err) => {
