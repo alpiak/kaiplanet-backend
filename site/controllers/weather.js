@@ -2,21 +2,13 @@
  * Created by qhyang on 2017/4/27.
  */
 
+const https = require('https');
 const express = require('express');
 const proxy = require('http-proxy-middleware');
 
-// proxy middleware options
-let options = {
-    target: 'https://api.darksky.net', // Target host
-    changeOrigin: true, // Needed for virtual hosted sites
-    pathRewrite: {
-        '^/weather' : '/forecast/' + require('../credentials').darkSkyKey + '/' // Add base path
-    }
-};
-
 module.exports = {
     registerRoutes: function(app) {
-        app.use('/weather', this.darkSkyProxy);
+        app.post('/weather', this.darkSky);
     },
 
     darkSky: (req, res) => {
@@ -28,7 +20,6 @@ module.exports = {
                 path: '/forecast/' + require('../credentials').darkSkyKey + '/' + location.coords.latitude + ',' + location.coords.longitude,
                 method: 'GET'
             };
-
             https.request(options, (darkSkyRes) => {
                 darkSkyRes.setEncoding('utf8');
 

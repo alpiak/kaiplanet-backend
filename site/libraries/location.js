@@ -9,7 +9,7 @@ module.exports = function () {
         getLocation: function (ip, successCallback, failCallback) {
             const options = {
                 hostname: 'ip-api.com',
-                path: '/json/' + '220.181.57.217', //TODO: ip
+                path: '/json/' + '61.129.65.58', //TODO: ip
                 method: 'GET'
             };
 
