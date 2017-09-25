@@ -10,7 +10,8 @@ const credentials = require('./credentials');
 const app = express();
 
 app.use(bodyParser.urlencoded({
-    extended: false
+    extended: false,
+    type: 'application/x-www-form-urlencoded'
 }));
 
 app.set('port', process.env.PORT || 3000);
