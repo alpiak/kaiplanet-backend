@@ -15,10 +15,14 @@ module.exports = {
 
         form.parse(req, (err, fields, files) => {
             if (err) {
-                res.json({
+                return res.json({
                     code: -1,
                     message: 'Upload Failed - ' + err.message
                 });
+            }
+
+            if (fields.unique === undefined) {
+                fields.unique = true;
             }
 
             require('../libraries/file')().uploadFilesToAliyun(files, 'md5', fields.unique).then(results => {
@@ -35,8 +39,11 @@ module.exports = {
         });
     },
     uploadBase64Encoded: (req, res) => {
-        console.log(req.body);
         const fileData = Buffer.from(req.body.data.replace(/ /g, '+'), 'base64');
+
+        if (req.body.unique === undefined) {
+            req.body.unique = true;
+        }
 
         require('../libraries/file')().uploadFilesToAliyun({
             img: {
