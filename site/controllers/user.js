@@ -30,7 +30,7 @@ module.exports = {
             Object.assign(user, {
                 nickName: req.body.nickname,
                 birthday: req.body.birthday,
-                gender: req.body.gender
+                gender: Number(req.body.gender)
             });
             user.save((err) => {
                 if (err) {
