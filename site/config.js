@@ -3,5 +3,5 @@
  */
 
 module.exports = {
-    urlBase: 'http://localhost:9999'
+    urlBase: '/'
 };
