@@ -21,10 +21,10 @@ passport.deserializeUser(function(id, done) {
 
 module.exports = function (app, options) {
     if (!options.successRedirect) {
-        options.successRedirect = '/home';
+        options.successRedirect = require('../config').urlBase;
     }
     if (!options.failureRedirect) {
-        options.failureRedirect = '/home';
+        options.failureRedirect = require('../config').urlBase;
     }
 
     return {
@@ -53,8 +53,25 @@ module.exports = function (app, options) {
             }, function(accessToken, refreshToken, profile, done) {
                 const User = require('../models/users');
 
-                //TODO: console.log(profile);
-                User.findOrCreate({ baiduId: profile.id }, function (err, user, created) {
+                User.findOrCreate({ baiduId: profile.id }, {
+                    nickName: profile.displayName || profile.username,
+                    birthday: profile.birthday || '',
+                    gender: (() => {
+                        switch (profile.gender) {
+                            case '0':
+                                return 0;
+                            case '1':
+                                return 1;
+                            case '2':
+                                return 2;
+                            default:
+                                return 0;
+                        }
+                    })(),
+                    gridStackData: '[{"x":0,"y":0,"width":12,"height":2,"type":"header","zIndex":3}]'
+                }, function (err, user) {
+                    user.lastLogin =  Date.now();
+                    user.save();
                     return done(err, user);
                 });
             }));
@@ -62,6 +79,7 @@ module.exports = function (app, options) {
             app.use(passport.initialize());
             app.use(passport.session());
         },
+
         registerRoutes: function() {
             app.get('/auth/baidu', function (req, res, next) {
                 passport.authenticate('baidu', {
@@ -69,7 +87,7 @@ module.exports = function (app, options) {
                 })(req, res, next);
             });
 
-            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: '/home' }), function(req, res) {
+            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: require('../config').urlBase }), function(req, res) {
                 // If this function gets called, authentication was successful.
                 // `req.user` contains the authenticated user.
                 //TODO: console.log(req.user);
