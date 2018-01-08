@@ -15,10 +15,7 @@ const credentials = require('./credentials');
 
 const app = express();
 
-app.use(bodyParser.urlencoded({
-    extended: false,
-    type: 'application/x-www-form-urlencoded'
-}));
+app.use(bodyParser.json());
 
 app.set('port', process.env.PORT || 3000);
 
@@ -34,6 +31,7 @@ require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/upload').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
+require('./controllers/music').registerRoutes(app);
 
 // Static views
 

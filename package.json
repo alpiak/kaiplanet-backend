@@ -20,6 +20,7 @@
   "homepage": "https://github.com/bubblesoft/bubblesoft-backend#readme",
   "dependencies": {
     "ali-oss": "^4.10.1",
+    "apicache": "^1.2.0",
     "body-parser": "^1.17.2",
     "co": "^4.6.0",
     "compression": "^1.7.1",
@@ -30,6 +31,7 @@
     "mongoose": "^4.9.5",
     "mongoose-auto-increment": "^5.0.1",
     "mongoose-findorcreate": "^2.0.0",
+    "music-api": "^0.3.11",
     "passport": "^0.3.2",
     "passport-baidu": "0.0.1"
   },
