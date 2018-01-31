@@ -7,9 +7,14 @@ const apicache = require('apicache'),
 
 const cache = apicache.middleware;
 
+const hearthis = require('../libraries/audioSource').hearthis;
+
 // Search util function for the sources 'netease', 'xiami' and 'qq'.
-const search = async (keywords, source) => {
-    let tracks = (await musicAPI.searchSong(source, { key: keywords })).songList;
+const search = async (keywords, source, limit) => {
+    let tracks = (await musicAPI.searchSong(source, {
+        key: keywords,
+        limit
+    })).songList;
 
     return {
         _tracks: tracks,
@@ -32,6 +37,7 @@ const search = async (keywords, source) => {
                 name: track.name,
                 duration: track.duration,
                 artists: getArtists(),
+                picture: track.album.coverBig,
                 source: source
             }
         },
@@ -41,10 +47,10 @@ const search = async (keywords, source) => {
 
 const sources = {
     netease: {
-        async search({ keywords }) {
-          return await search(keywords, 'netease');
+        async search(keywords, limit) {
+          return await search(keywords, 'netease', limit);
         },
-        async getSrc(id) {
+        async getStreamUrl(id) {
           return (await musicAPI.getSong('netease', { id })).url;
         },
         channels: {
@@ -69,6 +75,7 @@ const sources = {
                                 name: track.name,
                                 duration: track.duration,
                                 artists: getArtists(),
+                                picture: track.album.coverBig,
                                 source: 'netease'
                             }
                         });
@@ -77,19 +84,46 @@ const sources = {
         }
     },
     // xiami: {
-    //     async search({ keywords }) {
-    //         return await search(keywords, 'xiami');
+    //     async search(keywords, limit) {
+    //         return await search(keywords, 'xiami', limit);
     //     },
-    //     async getSrc(id) {
+    //     async getStreamUrl(id) {
     //         return (await musicAPI.getSong('xiami', { id })).url;
     //     }
     // },
     qq: {
-        async search({ keywords }) {
-            return await search(keywords, 'qq');
+        async search(keywords, limit) {
+            return await search(keywords, 'qq', limit);
         },
-        async getSrc(id) {
+        async getStreamUrl(id) {
             return (await musicAPI.getSong('qq', { id })).url;
+        }
+    },
+    hearthis: {
+        async search(keywords, limit) {
+            const tracks = await hearthis.search(keywords, limit);
+
+            return {
+                _tracks: tracks,
+                get(index) {
+                    const track = this._tracks[index];
+
+                    return {
+                        id: String(track.id),
+                        name: track.title,
+                        duration: +track.duration * 1000,
+                        artists: [{
+                            name: track.user.username
+                        }],
+                        picture: track.artwork_url,
+                        source: 'hearthis'
+                    }
+                },
+                length: tracks.length
+            };
+        },
+        async getStreamUrl(id) {
+            return (await hearthis.getTrack(id)).stream_url;
         }
     }
 };
@@ -99,12 +133,12 @@ module.exports = {
         app.post('/music/search', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.keywords + (req.body.sources && req.body.sources.join()) + req.body.limit
         }), this.search);
-        app.post('/music/src', cache('5 minutes', () => true, {
+        app.post('/music/streamurl', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.id + req.body.source
-        }), this.getSrc);
-        app.post('/music/altsrc', cache('5 minutes', () => true, {
+        }), this.getStreamUrl);
+        app.post('/music/altstreamurl', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.name
-        }), this.getAltSrc);
+        }), this.getAltStreamUrl);
         app.post('/music/list', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.source + req.body.channel
         }), this.getList);
@@ -125,8 +159,10 @@ module.exports = {
                 req.body.sources = Object.keys(sources);
             }
 
+            let limit = req.body.limit || 20;
+
             req.body.sources.forEach(source => {
-                promises.push(sources[source].search({ keywords: req.body.keywords }));
+                promises.push(sources[source].search(req.body.keywords, limit));
             });
 
             const results = await Promise.all(promises),
@@ -136,7 +172,7 @@ module.exports = {
 
             results.forEach(result => len += result.length);
 
-            const limit = Math.min((req.body.limit || 30), len);
+            limit = Math.min(limit, len);
 
             loop1:for (let i = 0; output.length < limit; i++) {
                 for (let j = 0, len = results.length; j < len; j++) {
@@ -164,11 +200,11 @@ module.exports = {
         }
     },
 
-    async getSrc(req, res) {
+    async getStreamUrl(req, res) {
         try {
             res.json({
                 code: 1,
-                data: await sources[req.body.source].getSrc(req.body.id)
+                data: await sources[req.body.source].getStreamUrl(req.body.id)
             });
         } catch (e) {
             res.json({
@@ -178,7 +214,7 @@ module.exports = {
         }
     },
 
-    async getAltSrc(req, res) {
+    async getAltStreamUrl(req, res) {
         try {
             let promises = [];
 
@@ -194,7 +230,7 @@ module.exports = {
                 if (result.length) {
                     const track = result.get(0);
 
-                    promises.push(sources[track.source].getSrc(track.id));
+                    promises.push(sources[track.source].getStreamUrl(track.id));
                 }
             });
 

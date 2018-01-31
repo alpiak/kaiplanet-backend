@@ -18,6 +18,7 @@ module.exports = {
                 path: '/forecast/' + require('../credentials').darkSkyKey + '/' + location.coords.latitude + ',' + location.coords.longitude,
                 method: 'GET'
             };
+
             https.request(options, (darkSkyRes) => {
                 darkSkyRes.setEncoding('utf8');
 

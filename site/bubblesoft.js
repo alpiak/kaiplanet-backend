@@ -31,7 +31,7 @@ require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/upload').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
-require('./controllers/music').registerRoutes(app);
+require('./controllers/audio').registerRoutes(app);
 
 // Static views
 
