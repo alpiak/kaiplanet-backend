@@ -47,6 +47,8 @@ const search = async (keywords, source, limit) => {
 
 const sources = {
     netease: {
+        id: 'netease',
+        name: '网易云音乐',
         async search(keywords, limit) {
           return await search(keywords, 'netease', limit);
         },
@@ -55,6 +57,8 @@ const sources = {
         },
         channels: {
             hot: {
+                type: 'hot',
+                name: '云音乐热歌榜',
                 async getList() {
                     return (await musicAPI.getPlaylist('netease', { id: 3778678 })).songList
                         .map(track => {
@@ -84,6 +88,8 @@ const sources = {
         }
     },
     // xiami: {
+    //     id: 'xiami',
+    //     name: '虾米音乐',
     //     async search(keywords, limit) {
     //         return await search(keywords, 'xiami', limit);
     //     },
@@ -92,6 +98,8 @@ const sources = {
     //     }
     // },
     qq: {
+        id: 'qq',
+        name: 'QQ音乐',
         async search(keywords, limit) {
             return await search(keywords, 'qq', limit);
         },
@@ -100,6 +108,8 @@ const sources = {
         }
     },
     hearthis: {
+        id: 'hearthis',
+        name: 'hearthis.at',
         async search(keywords, limit) {
             const tracks = await hearthis.search(keywords, limit);
 
@@ -123,29 +133,30 @@ const sources = {
             };
         },
         async getStreamUrl(id) {
-            return (await hearthis.getTrack(id)).stream_url;
+            return (await hearthis.getTrack(id)).stream_url.replace(/^https/, 'http');
         }
     }
 };
 
 module.exports = {
     registerRoutes(app) {
-        app.post('/music/search', cache('5 minutes', () => true, {
+        app.post('/audio/search', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.keywords + (req.body.sources && req.body.sources.join()) + req.body.limit
         }), this.search);
-        app.post('/music/streamurl', cache('5 minutes', () => true, {
+        app.post('/audio/streamurl', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.id + req.body.source
         }), this.getStreamUrl);
-        app.post('/music/altstreamurl', cache('5 minutes', () => true, {
+        app.post('/audio/altstreamurls', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.name
-        }), this.getAltStreamUrl);
-        app.post('/music/list', cache('5 minutes', () => true, {
+        }), this.getAltStreamUrls);
+        app.post('/audio/list', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.source + req.body.channel
         }), this.getList);
+        app.post('/audio/sources', cache('5 minutes'), this.getSources);
     },
 
     /**
-     * @api {post} /music/search
+     * @api {post} /audio/search
      *
      * @apiParam keywords {String} The keywords to search
      * @apiParam sources {String[]} The sources to search in
@@ -214,12 +225,12 @@ module.exports = {
         }
     },
 
-    async getAltStreamUrl(req, res) {
+    async getAltStreamUrls(req, res) {
         try {
             let promises = [];
 
             Object.values(sources).forEach(source => {
-                promises.push(source.search({ keywords: req.body.name }));
+                promises.push(source.search(req.body.name), 1);
             });
 
             const results = await Promise.all(promises);
@@ -253,6 +264,31 @@ module.exports = {
                 data: await sources[req.body.source].channels[req.body.channel].getList({
                     limit: req.body.limit,
                     offset: req.body.offset
+                })
+            });
+        } catch (e) {
+            res.json({
+                code: -1,
+                message: 'Query Failed - ' + e.message
+            });
+        }
+    },
+
+    async getSources(req, res) {
+        try {
+            res.json({
+                code: 1,
+                data: Object.values(sources).map(source => {
+                    return {
+                        id: source.id,
+                        name: source.name,
+                        channels: !source.channels ? [] : Object.values(source.channels).map(channel => {
+                            return {
+                                type: channel.type,
+                                name: channel.name
+                            }
+                        })
+                    }
                 })
             });
         } catch (e) {
