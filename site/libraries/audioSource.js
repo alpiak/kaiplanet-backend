@@ -2,14 +2,15 @@
  * Created by qhyang on 2018/1/30.
  */
 
-const https = require('https');
+const https = require('https'),
+    querystring = require('querystring');
 
 const hearthis = {
     async search(keywords, limit) {
         return await new Promise((resolve, reject) => {
             const options = {
                 hostname: 'api-v2.hearthis.at',
-                path: '/search/?t=' + keywords.replace(' ', '+') + '&page=1&count=' + limit,
+                path: '/search/?t=' + querystring.escape(keywords.replace(' ', '+')) + '&page=1&count=' + limit,
                 method: 'GET'
             };
 
@@ -22,7 +23,13 @@ const hearthis = {
                     data += chunk;
                 });
                 res.on('end', () => {
-                    resolve(JSON.parse(data));
+                    data = JSON.parse(data);
+
+                    if (data.success === false) {
+                        resolve([]);
+                    } else {
+                        resolve(data);
+                    }
                 });
             })
                 .on('error', (e) => {
@@ -31,6 +38,7 @@ const hearthis = {
                 .end();
         });
     },
+
     async getTrack(id) {
         return await new Promise((resolve, reject) => {
             const options = {
@@ -48,7 +56,13 @@ const hearthis = {
                     data += chunk;
                 });
                 res.on('end', () => {
-                    resolve(JSON.parse(data));
+                    const parsedData = JSON.parse(data);
+
+                    if (Object.prototype.toString.call(parsedData)=='[object Array]') {
+                        resolve(parsedData);
+                    } else {
+                        resolve([]);
+                    }
                 });
             })
                 .on('error', (e) => {
