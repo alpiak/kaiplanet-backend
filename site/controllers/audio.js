@@ -2,12 +2,17 @@
  * Created by qhyang on 2017/12/28.
  */
 
-const apicache = require('apicache'),
+const https = require('https'),
+    apicache = require('apicache'),
     musicAPI = require('music-api');
 
 const cache = apicache.middleware;
 
-const hearthis = require('../libraries/audioSource').hearthis;
+const NeteaseCloudMusicApi = require('../vendors/NeteaseCloudMusicApi/NeteaseCloudMusicApi');
+
+const audioSource = require('../libraries/audioSource'),
+    qq = audioSource.qq,
+    hearthis = audioSource.hearthis;
 
 // Search util function for the sources 'netease', 'xiami' and 'qq'.
 const search = async (keywords, source, limit) => {
@@ -19,27 +24,18 @@ const search = async (keywords, source, limit) => {
     return {
         _tracks: tracks,
         get(index) {
-            const track = this._tracks[index],
-                getArtists = () => {
-                    const output = [];
-
-                    track.artists.forEach(artist => {
-                        output.push({
-                            name: artist.name
-                        });
-                    });
-
-                    return output;
-                };
+            const track = this._tracks[index];
 
             return {
                 id: String(track.id),
                 name: track.name,
                 duration: track.duration,
-                artists: getArtists(),
+                artists: track.artists.map(artist => {
+                    return { name: artist.name };
+                }),
                 picture: track.album.coverBig,
                 source: source
-            }
+            };
         },
         length: tracks.length
     };
@@ -49,39 +45,62 @@ const sources = {
     netease: {
         id: 'netease',
         name: '网易云音乐',
+
         async search(keywords, limit) {
           return await search(keywords, 'netease', limit);
         },
+
         async getStreamUrl(id) {
           return (await musicAPI.getSong('netease', { id })).url;
         },
+
+        async getRecommend({ track: { name, author } }) {
+            let tracks;
+
+            if (name) {
+                const trackId = (await this.search(name + (author || ''), 1)).get(0).id;
+
+                tracks = JSON.parse(await NeteaseCloudMusicApi.getSimilarSongs(trackId, 0, 20)).songs;
+            }
+
+            if (!tracks || !tracks.length) {
+                tracks = (await musicAPI.getPlaylist('netease', { id: 3778678 })).songList;
+            }
+
+            const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            return {
+                id: String(randomTrack.id),
+                name: randomTrack.name,
+                duration: randomTrack.duration,
+                artists: randomTrack.artists.map(artist => {
+                    return { name: artist.name };
+                }),
+                picture: randomTrack.album.picUrl,
+                source: 'netease'
+            };
+        },
+
         channels: {
-            hot: {
-                type: 'hot',
+            popular: {
+                type: 'popular',
                 name: '云音乐热歌榜',
+
                 async getList() {
                     return (await musicAPI.getPlaylist('netease', { id: 3778678 })).songList
                         .map(track => {
-                            const getArtists = () => {
-                                const output = [];
-
-                                track.artists.forEach(artist => {
-                                    output.push({
-                                        name: artist.name
-                                    });
-                                });
-
-                                return output;
-                            };
-
                             return {
                                 id: String(track.id),
                                 name: track.name,
                                 duration: track.duration,
-                                artists: getArtists(),
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
                                 picture: track.album.coverBig,
                                 source: 'netease'
-                            }
+                            };
                         });
                 }
             }
@@ -90,9 +109,11 @@ const sources = {
     // xiami: {
     //     id: 'xiami',
     //     name: '虾米音乐',
+
     //     async search(keywords, limit) {
     //         return await search(keywords, 'xiami', limit);
     //     },
+
     //     async getStreamUrl(id) {
     //         return (await musicAPI.getSong('xiami', { id })).url;
     //     }
@@ -100,16 +121,58 @@ const sources = {
     qq: {
         id: 'qq',
         name: 'QQ音乐',
+
         async search(keywords, limit) {
             return await search(keywords, 'qq', limit);
         },
+
         async getStreamUrl(id) {
             return (await musicAPI.getSong('qq', { id })).url;
+        },
+
+        async getRecommend({ track: { name, author } }) {
+            const tracks = (await qq.getTopList()).songlist,
+                randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            return {
+                id: String(randomTrack.data.songmid),
+                name: randomTrack.data.songname,
+                duration: randomTrack.data.interval * 1000,
+                artists: randomTrack.data.singer.map(artist => {
+                    return { name: artist.name };
+                }),
+                picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + randomTrack.data.albummid + '.jpg?max_age=2592000',
+                source: 'qq'
+            };
+        },
+
+        channels: {
+            popular: {
+                type: 'popular',
+                name: '安利XS·巅峰榜·流行指数',
+
+                async getList() {
+                    return (await qq.getTopList()).songlist
+                        .map(track => {
+                            return {
+                                id: String(track.data.songmid),
+                                name: track.data.songname,
+                                duration: track.data.interval * 1000,
+                                artists: track.data.singer.map(artist => {
+                                    return { name: artist.name };
+                                }),
+                                picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + track.data.albummid + '.jpg?max_age=2592000',
+                                source: 'qq'
+                            };
+                        });
+                }
+            }
         }
     },
     hearthis: {
         id: 'hearthis',
         name: 'hearthis.at',
+
         async search(keywords, limit) {
             const tracks = await hearthis.search(keywords, limit);
 
@@ -132,8 +195,48 @@ const sources = {
                 length: tracks.length
             };
         },
+
         async getStreamUrl(id) {
             return (await hearthis.getTrack(id)).stream_url.replace(/^https/, 'http');
+        },
+
+        async getRecommend({ track: { name, author } }) {
+            const tracks = await hearthis.getFeed('popular'),
+                randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            return {
+                id: String(randomTrack.id),
+                name: randomTrack.title,
+                duration: +randomTrack.duration * 1000,
+                artists: [{
+                    name: randomTrack.user.username
+                }],
+                picture: randomTrack.artwork_url,
+                source: 'hearthis'
+            };
+        },
+
+        channels: {
+            popular: {
+                type: 'popular',
+                name: 'Popular',
+
+                async getList() {
+                    return (await hearthis.getFeed('popular'))
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.title,
+                                duration: +track.duration * 1000,
+                                artists: [{
+                                    name: track.user.username
+                                }],
+                                picture: track.artwork_url,
+                                source: 'hearthis'
+                            };
+                        });
+                }
+            }
         }
     }
 };
@@ -143,32 +246,36 @@ module.exports = {
         app.post('/audio/search', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.keywords + (req.body.sources && req.body.sources.join()) + req.body.limit
         }), this.search);
+
         app.post('/audio/streamurl', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.id + req.body.source
         }), this.getStreamUrl);
+
         app.post('/audio/altstreamurls', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.name
         }), this.getAltStreamUrls);
+
         app.post('/audio/list', cache('5 minutes', () => true, {
             appendKey: (req, res) => req.body.source + req.body.channel
         }), this.getList);
+
         app.post('/audio/sources', cache('5 minutes'), this.getSources);
+
+        app.post('/audio/recommend', cache('5 minutes', () => true, {
+            appendKey: (req, res) => JSON.stringify(req.body)
+        }), this.getRecommend);
     },
 
     /**
      * @api {post} /audio/search
      *
-     * @apiParam keywords {String} The keywords to search
-     * @apiParam sources {String[]} The sources to search in
-     * @apiParam [limit] {Number} Optional The max number of items returned
+     * @apiParam {String} keywords The keywords to search
+     * @apiParam {String[]} [sources] Optional Sources to search in
+     * @apiParam {Number} [limit] Optional Max number of items returned
      */
     async search(req, res) {
         try {
             const promises = [];
-
-            if (!req.body.sources) {
-                req.body.sources = Object.keys(sources);
-            }
 
             let limit = req.body.limit || 20;
 
@@ -257,6 +364,14 @@ module.exports = {
         }
     },
 
+    /**
+     * @api {post} /audio/list
+     *
+     * @apiParam {String} source The source ID of the list
+     * @apiParam {String} channel The channel ID of the list
+     * @apiParam {Number} [limit] Optional Max number of items returned
+     * @apiParam {Number} [offset] Optional Offset to get items
+     */
     async getList(req, res) {
         try {
             res.json({
@@ -289,6 +404,39 @@ module.exports = {
                             }
                         })
                     }
+                })
+            });
+        } catch (e) {
+            res.json({
+                code: -1,
+                message: 'Query Failed - ' + e.message
+            });
+        }
+    },
+
+    /**
+     * @api {post} /audio/recommend
+     *
+     * @apiParam {Object} [track]
+     * @apiParam {String} [track.name] Optional Track name
+     * @apiParam {String} [track.author] Optional Author name
+     * @apiParam {String[]} [sources] Optional Sources to search in
+     */
+    async getRecommend(req, res) {
+        try {
+            if (!req.body.sources) {
+                req.body.sources = Object.keys(sources);
+            }
+
+            const randomSource = sources[req.body.sources[Math.floor(req.body.sources.length * Math.random())]];
+
+            res.json({
+                code: 1,
+                data: await randomSource.getRecommend({
+                    track: req.body.track ? {
+                        name: req.body.track.name,
+                        author: req.body.track.author
+                    } : {}
                 })
             });
         } catch (e) {
