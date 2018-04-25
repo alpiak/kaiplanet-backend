@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bubblesoft</title>
+    <base href="/">
+    <style type="text/css">
+        .app-loading {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+        }
+
+        .app-loading__loader {
+            position: absolute;
+            width: 600px;
+            height: 36px;
+            left: 50%;
+            top: 50%;
+            margin-left: -300px;
+            overflow: visible;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            cursor: default;
+        }
+
+        .app-loading__loader div {
+            position: absolute;
+            width: 20px;
+            height: 36px;
+            opacity: 0;
+            font-family: Helvetica, Arial, sans-serif;
+            animation: move 2s linear infinite;
+            -o-animation: move 2s linear infinite;
+            -moz-animation: move 2s linear infinite;
+            -webkit-animation: move 2s linear infinite;
+            transform: rotate(180deg);
+            -o-transform: rotate(180deg);
+            -moz-transform: rotate(180deg);
+            -webkit-transform: rotate(180deg);
+            color: rgb(96, 125, 139);
+        }
+
+        .app-loading__loader div:nth-child(2) {
+            animation-delay: 0.2s;
+            -o-animation-delay: 0.2s;
+            -moz-animation-delay: 0.2s;
+            -webkit-animation-delay: 0.2s;
+        }
+        .app-loading__loader div:nth-child(3) {
+            animation-delay: 0.4s;
+            -o-animation-delay: 0.4s;
+            -webkit-animation-delay: 0.4s;
+            -webkit-animation-delay: 0.4s;
+        }
+        .app-loading__loader div:nth-child(4) {
+            animation-delay: 0.6s;
+            -o-animation-delay: 0.6s;
+            -moz-animation-delay: 0.6s;
+            -webkit-animation-delay: 0.6s;
+        }
+        .app-loading__loader div:nth-child(5) {
+            animation-delay: 0.8s;
+            -o-animation-delay: 0.8s;
+            -moz-animation-delay: 0.8s;
+            -webkit-animation-delay: 0.8s;
+        }
+        .app-loading__loader div:nth-child(6) {
+            animation-delay: 1s;
+            -o-animation-delay: 1s;
+            -moz-animation-delay: 1s;
+            -webkit-animation-delay: 1s;
+        }
+        .app-loading__loader div:nth-child(7) {
+            animation-delay: 1.2s;
+            -o-animation-delay: 1.2s;
+            -moz-animation-delay: 1.2s;
+            -webkit-animation-delay: 1.2s;
+        }
+
+        @keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -moz-transform: rotate(0deg);
+                -webkit-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -moz-transform: rotate(0deg);
+                -webkit-transform: rotate(0deg);
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -moz-transform: rotate(-180deg);
+                -webkit-transform: rotate(-180deg);
+                -o-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-moz-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -moz-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -moz-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -moz-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-webkit-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -webkit-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        @-o-keyframes move {
+            0% {
+                left: 0;
+                opacity: 0;
+            }
+            35% {
+                left: 41%;
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            65% {
+                left: 59%;
+                -o-transform: rotate(0deg);
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                -o-transform: rotate(-180deg);
+                transform: rotate(-180deg);
+                opacity: 0;
+            }
+        }
+
+        .app-loading__counter {
+            position: absolute;
+            width: 300px;
+            height: 36px;
+            left: 50%;
+            top: 50%;
+            margin-top: -120px;
+            margin-left: -150px;
+            text-align: center;
+        }
+        .app-loading__counter h1 {
+            color: white;
+            font-size: 60px;
+            margin: 0;
+        }
+        .app-loading__counter hr {
+            width: 0;
+            background-color: rgb(255, 193, 7);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-loading">
+        <div class="app-loading__counter">
+            <h1>0%</h1>
+            <hr>
+        </div>
+        <div class="app-loading__loader">
+            <div>G</div>
+            <div>N</div>
+            <div>I</div>
+            <div>D</div>
+            <div>A</div>
+            <div>O</div>
+            <div>L</div>
+        </div>
+    </div>
+    <bs-app></bs-app>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenLite.min.js"></script>
+    <script>
+        (function() {
+            function updateProgress(progress) {
+                var $counter = $(".app-loading__counter");
+                var loading = {
+                    progress: $counter.data("loaded-percent") || 0
+                };
+
+                $counter.data("loaded-percent", progress);
+                TweenLite.to(loading, 0.5, {
+                    progress: progress,
+                    onUpdate: function() {
+                        $(".app-loading__counter h1").text(loading.progress.toFixed() + "%");
+                        $(".app-loading__counter hr").width(loading.progress.toFixed() + "%");
+                    }
+                });
+            }
+
+            if (window.$ && window.TweenLite) {
+                updateProgress(10);
+            } else {
+                document.getElementsByClassName("app-loading__counter")[0].style.display = "none";
+            }
+        }());
+    </script>
+    <script type="text/javascript" src="vendors.bundle.js"></script><script type="text/javascript" src="coreJS.bundle.js"></script><script type="text/javascript" src="app.bundle.js"></script></body>
+</html>
