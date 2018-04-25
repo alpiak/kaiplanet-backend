@@ -26,6 +26,10 @@ const search = async (keywords, source, limit) => {
         get(index) {
             const track = this._tracks[index];
 
+            if (!track) {
+                return;
+            }
+
             return {
                 id: String(track.id),
                 name: track.name,
@@ -54,17 +58,32 @@ const sources = {
           return (await musicAPI.getSong('netease', { id })).url;
         },
 
-        async getRecommend({ track: { name, author } }) {
+        async getRecommend({ track: { name, artists } }) {
             let tracks;
 
             if (name) {
-                const trackId = (await this.search(name + (author || ''), 1)).get(0).id;
+                const track = (await this.search(name + (artists ? artists.join('+') : ''), 1)).get(0);
 
-                tracks = JSON.parse(await NeteaseCloudMusicApi.getSimilarSongs(trackId, 0, 20)).songs;
+                if (track) {
+                    tracks = JSON.parse(await NeteaseCloudMusicApi.getSimilarSongs(track.id, 0, 20)).songs;
+                }
             }
 
             if (!tracks || !tracks.length) {
                 tracks = (await musicAPI.getPlaylist('netease', { id: 3778678 })).songList;
+
+                const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+                return {
+                    id: String(randomTrack.id),
+                    name: randomTrack.name,
+                    duration: randomTrack.duration,
+                    artists: randomTrack.artists.map(artist => {
+                        return { name: artist.name };
+                    }),
+                    picture: randomTrack.album.coverBig,
+                    source: 'netease'
+                };
             }
 
             const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
@@ -88,6 +107,116 @@ const sources = {
 
                 async getList() {
                     return (await musicAPI.getPlaylist('netease', { id: 3778678 })).songList
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.name,
+                                duration: track.duration,
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
+                                picture: track.album.coverBig,
+                                source: 'netease'
+                            };
+                        });
+                }
+            },
+            billboard: {
+                type: 'billboard',
+                name: '美国Billboard周榜',
+
+                async getList() {
+                    return (await musicAPI.getPlaylist('netease', { id: 60198 })).songList
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.name,
+                                duration: track.duration,
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
+                                picture: track.album.coverBig,
+                                source: 'netease'
+                            };
+                        });
+                }
+            },
+            oricon: {
+                type: 'oricon',
+                name: '日本Oricon周榜',
+
+                async getList() {
+                    return (await musicAPI.getPlaylist('netease', { id: 60131 })).songList
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.name,
+                                duration: track.duration,
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
+                                picture: track.album.coverBig,
+                                source: 'netease'
+                            };
+                        });
+                }
+            },
+            mnet: {
+                type: 'mnet',
+                name: '韩国Mnet排行榜周榜',
+
+                async getList() {
+                    return (await musicAPI.getPlaylist('netease', { id: 60255 })).songList
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.name,
+                                duration: track.duration,
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
+                                picture: track.album.coverBig,
+                                source: 'netease'
+                            };
+                        });
+                }
+            },
+            hito: {
+                type: 'hito',
+                name: '台湾Hito排行榜',
+
+                async getList() {
+                    return (await musicAPI.getPlaylist('netease', { id: 112463 })).songList
+                        .map(track => {
+                            return {
+                                id: String(track.id),
+                                name: track.name,
+                                duration: track.duration,
+                                artists: track.artists.map(artist => {
+                                    return {
+                                        name: artist.name
+                                    }
+                                }),
+                                picture: track.album.coverBig,
+                                source: 'netease'
+                            };
+                        });
+                }
+            },
+            chinaTop: {
+                type: 'chinaTop',
+                name: '中国TOP排行榜(内地榜)',
+
+                async getList() {
+                    return (await musicAPI.getPlaylist('netease', { id: 64016 })).songList
                         .map(track => {
                             return {
                                 id: String(track.id),
@@ -130,7 +259,7 @@ const sources = {
             return (await musicAPI.getSong('qq', { id })).url;
         },
 
-        async getRecommend({ track: { name, author } }) {
+        async getRecommend({ track: { name, artists } }) {
             const tracks = (await qq.getTopList()).songlist,
                 randomTrack = tracks[Math.floor(tracks.length * Math.random())];
 
@@ -200,7 +329,7 @@ const sources = {
             return (await hearthis.getTrack(id)).stream_url.replace(/^https/, 'http');
         },
 
-        async getRecommend({ track: { name, author } }) {
+        async getRecommend({ track: { name, artists } }) {
             const tracks = await hearthis.getFeed('popular'),
                 randomTrack = tracks[Math.floor(tracks.length * Math.random())];
 
@@ -244,26 +373,24 @@ const sources = {
 module.exports = {
     registerRoutes(app) {
         app.post('/audio/search', cache('5 minutes', () => true, {
-            appendKey: (req, res) => req.body.keywords + (req.body.sources && req.body.sources.join()) + req.body.limit
+            appendKey: (req, res) => JSON.stringify(req.body)
         }), this.search);
 
         app.post('/audio/streamurl', cache('5 minutes', () => true, {
-            appendKey: (req, res) => req.body.id + req.body.source
+            appendKey: (req, res) => JSON.stringify(req.body)
         }), this.getStreamUrl);
 
         app.post('/audio/altstreamurls', cache('5 minutes', () => true, {
-            appendKey: (req, res) => req.body.name
+            appendKey: (req, res) => JSON.stringify(req.body)
         }), this.getAltStreamUrls);
 
         app.post('/audio/list', cache('5 minutes', () => true, {
-            appendKey: (req, res) => req.body.source + req.body.channel
+            appendKey: (req, res) => JSON.stringify(req.body)
         }), this.getList);
 
         app.post('/audio/sources', cache('5 minutes'), this.getSources);
 
-        app.post('/audio/recommend', cache('5 minutes', () => true, {
-            appendKey: (req, res) => JSON.stringify(req.body)
-        }), this.getRecommend);
+        app.post('/audio/recommend', this.getRecommend);
     },
 
     /**
@@ -275,6 +402,10 @@ module.exports = {
      */
     async search(req, res) {
         try {
+            if (!req.body.sources || !req.body.sources.length) {
+                req.body.sources = Object.keys(sources);
+            }
+
             const promises = [];
 
             let limit = req.body.limit || 20;
@@ -419,12 +550,12 @@ module.exports = {
      *
      * @apiParam {Object} [track]
      * @apiParam {String} [track.name] Optional Track name
-     * @apiParam {String} [track.author] Optional Author name
+     * @apiParam {String[]} [track.artists] Optional Artist names
      * @apiParam {String[]} [sources] Optional Sources to search in
      */
     async getRecommend(req, res) {
         try {
-            if (!req.body.sources) {
+            if (!req.body.sources || !req.body.sources.length) {
                 req.body.sources = Object.keys(sources);
             }
 
@@ -435,7 +566,7 @@ module.exports = {
                 data: await randomSource.getRecommend({
                     track: req.body.track ? {
                         name: req.body.track.name,
-                        author: req.body.track.author
+                        artists: req.body.track.artists
                     } : {}
                 })
             });

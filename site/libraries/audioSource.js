@@ -90,7 +90,7 @@ const qq = {
                     res.on('end', () => {
                         const parsedData = JSON.parse(data);
 
-                        if (Object.prototype.toString.call(parsedData)=='[object Array]') {
+                        if (parsedData.id) {
                             resolve(parsedData);
                         } else {
                             resolve([]);
