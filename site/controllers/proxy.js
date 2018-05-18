@@ -49,16 +49,13 @@ module.exports = {
             target: 'http://m10.music.126.net',
             changeOrigin: true,
             pathRewrite: {
-                '^/netease' : '/'
+                '^/netease' : ''
             }
         }));
 
         app.use('/qq', proxy({
             target: 'http://dl.stream.qqmusic.qq.com',
-            changeOrigin: true,
-            pathRewrite: {
-                '^/qq' : '/'
-            }
+            changeOrigin: true
         }));
 
         app.use('/hearthis', (req, res, next) => {
@@ -80,7 +77,7 @@ module.exports = {
                 } else {
                     req._targetLocation = {
                         protocol: 'https:',
-                        host: 'hearthis.at'
+                        host: 'stream72.hearthis.at'
                     };
                 }
 
