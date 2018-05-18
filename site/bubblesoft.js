@@ -3,21 +3,18 @@
  */
 
 const fs = require('fs'),
-    Promise = require('bluebird');
+    Promise = require('bluebird'),
+    express = require('express'),
+    bodyParser = require('body-parser'),
+    proxy = require('http-proxy-middleware');
 
 Promise.promisifyAll(fs);
-
-const express = require('express'),
-    bodyParser = require('body-parser');
 
 const credentials = require('./credentials');
 
 const app = express();
 
-app.use(bodyParser.urlencoded({
-    extended: false,
-    type: 'application/x-www-form-urlencoded'
-}));
+app.use(bodyParser.json());
 
 app.set('port', process.env.PORT || 3000);
 
@@ -33,6 +30,7 @@ require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
 require('./controllers/proxy').registerRoutes(app);
+require('./controllers/audio').registerRoutes(app);
 
 // Static views
 
