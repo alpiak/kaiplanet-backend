@@ -8,8 +8,7 @@ const fs = require('fs'),
 Promise.promisifyAll(fs);
 
 const express = require('express'),
-    bodyParser = require('body-parser'),
-    proxy = require('http-proxy-middleware');
+    bodyParser = require('body-parser');
 
 const credentials = require('./credentials');
 
@@ -32,8 +31,8 @@ auth.registerRoutes();
 
 require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
-require('./controllers/upload').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
+require('./controllers/proxy').registerRoutes(app);
 
 // Static views
 
@@ -57,17 +56,6 @@ app.use(function(req, res, next){
 // Static resources
 app.use(require('compression')());
 app.use(express.static(__dirname + '/public'));
-
-// Proxies
-
-app.use('/netease', proxy({
-    target: 'http://m10.music.126.net',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/netease' : '/'
-    }
-}));
-
 
 // 404 page
 app.use(function(req, res) {
