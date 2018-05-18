@@ -5,7 +5,8 @@
 const https = require('https'),
     url = require('url');
 
-const proxy = require('http-proxy-middleware');
+const proxy = require('http-proxy-middleware'),
+    cache = require('apicache').middleware;
 
 const credentials = require('../credentials');
 
@@ -13,7 +14,7 @@ let location;
 
 module.exports = {
     registerRoutes(app) {
-        app.use('/soundcloud', (req, res, next) => {
+        app.use('/soundcloud', cache('24 hours'), (req, res, next) => {
                 https.get(`https://api.soundcloud.com${req.url}?client_id=${credentials.soundCloudClientId}`, originRes => {
                     if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
                         location = url.parse(originRes.headers.location);
@@ -45,20 +46,20 @@ module.exports = {
             })(req, res)
         });
 
-        app.use('/netease', proxy({
+        app.use('/netease', cache('24 hours'), proxy({
             target: 'http://m10.music.126.net',
-            changeOrigin: true,
             pathRewrite: {
                 '^/netease' : ''
-            }
+            },
+            changeOrigin: true
         }));
 
-        app.use('/qq', proxy({
+        app.use('/qq', cache('24 hours'), proxy({
             target: 'http://dl.stream.qqmusic.qq.com',
             changeOrigin: true
         }));
 
-        app.use('/hearthis', (req, res, next) => {
+        app.use('/hearthis', cache('24 hours'), (req, res, next) => {
             https.get(`https://hearthis.at${req.url}`, originRes => {
                 if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
                     location = url.parse(originRes.headers.location);
@@ -86,6 +87,18 @@ module.exports = {
         }, (req, res) => {
             proxy({
                 target: `${req._targetLocation.protocol}//${req._targetLocation.host}`,
+                changeOrigin: true
+            })(req, res)
+        });
+
+        app.use('/proxy', cache('24 hours'), (req, res) => {
+            const url = req.url;
+
+            proxy({
+                target: `${req.protocol}:/${url.slice(0, url.indexOf('/', 1))}`,
+                pathRewrite() {
+                    return url.slice(url.indexOf('/', 1));
+                },
                 changeOrigin: true
             })(req, res)
         });
