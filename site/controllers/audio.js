@@ -4,11 +4,31 @@
 
 const https = require('https'),
     apicache = require('apicache'),
-    musicAPI = require('music-api');
+    musicAPI = require('music-api'),
+    SC = require('node-soundcloud'),
+    NeteaseCloudMusicApi = require('../vendors/NeteaseCloudMusicApi/NeteaseCloudMusicApi');
+
+const credentials = require('../credentials');
 
 const cache = apicache.middleware;
 
-const NeteaseCloudMusicApi = require('../vendors/NeteaseCloudMusicApi/NeteaseCloudMusicApi');
+SC.get = (() => {
+    const _SCGet = SC.get;
+
+    return (path, params) => {
+        return new Promise((resolve, reject) => {
+            _SCGet.call(SC, path, params, (err, data) => {
+                if (err) {
+                    return reject(err);
+                }
+
+                resolve(data);
+            });
+        });
+    }
+})();
+
+SC.init({ id: credentials.soundCloudClientId });
 
 const audioSource = require('../libraries/audioSource'),
     qq = audioSource.qq,
@@ -46,12 +66,78 @@ const search = async (keywords, source, limit) => {
 };
 
 const sources = {
+    soundcloud: {
+        id: 'soundcloud',
+        name: 'SoundCloud',
+
+        async search(keywords, limit) {
+            const tracks = await SC.get('/tracks', {
+                q: keywords,
+                limit
+            });
+
+            return {
+                _tracks: tracks,
+                get(index) {
+                    const track = this._tracks[index];
+
+                    return {
+                        id: String(track.id),
+                        name: track.title,
+                        duration: +track.duration,
+                        artists: [{ name: track.user.username }],
+                        picture: track.artwork_url,
+                        source: 'soundcloud'
+                    }
+                },
+                length: tracks.length
+            };
+        },
+
+        async getStreamUrl(id) {
+            return (await SC.get('/tracks', { ids: String(id) }))[0].stream_url + `?client_id=${credentials.soundCloudClientId}`;
+        },
+
+        async getRecommend({ track: { name, artists } }) {
+            let tracks;
+
+            if (name) {
+                const track = (await SC.get('/tracks', {
+                    q: name,
+                    limit: 1
+                }))[0];
+
+                if (track) {
+                    tracks = await SC.get('/tracks', { tags: track.tag_list.replace(/\s*"(?:.|\n)*"/g, '').replace(/^\s*/g, '').split(/\s+/).join(',') });
+                }
+
+                if (tracks && tracks.length > 1) {
+                    tracks = tracks.slice(1);
+                }
+
+                if (!tracks || !tracks.length) {
+                    tracks = await SC.get('/tracks');
+                }
+
+                const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+                return {
+                    id: String(randomTrack.id),
+                    name: randomTrack.title,
+                    duration: +randomTrack.duration,
+                    artists: [{ name: randomTrack.user.username }],
+                    picture: track.artwork_url,
+                    source: 'soundcloud'
+                };
+            }
+        }
+    },
     netease: {
         id: 'netease',
         name: '网易云音乐',
 
         async search(keywords, limit) {
-          return await search(keywords, 'netease', limit);
+            return await search(keywords, 'netease', limit);
         },
 
         async getStreamUrl(id) {
@@ -77,7 +163,7 @@ const sources = {
                 return {
                     id: String(randomTrack.id),
                     name: randomTrack.name,
-                    duration: randomTrack.duration,
+                    duration: +randomTrack.duration,
                     artists: randomTrack.artists.map(artist => {
                         return { name: artist.name };
                     }),
@@ -91,7 +177,7 @@ const sources = {
             return {
                 id: String(randomTrack.id),
                 name: randomTrack.name,
-                duration: randomTrack.duration,
+                duration: +randomTrack.duration,
                 artists: randomTrack.artists.map(artist => {
                     return { name: artist.name };
                 }),
@@ -463,15 +549,20 @@ module.exports = {
         }
     },
 
+    /**
+     * @api {post} /audio/altstreamurls
+     *
+     * @apiParam {String} name The song name
+     */
     async getAltStreamUrls(req, res) {
         try {
             let promises = [];
 
             Object.values(sources).forEach(source => {
-                promises.push(source.search(req.body.name), 1);
+                promises.push(source.search(req.body.name));
             });
 
-            const results = await Promise.all(promises);
+            const results = (await Promise.all(promises)).filter(result => result.length);
 
             promises = [];
 

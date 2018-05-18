@@ -32,6 +32,7 @@
     "mongoose-auto-increment": "^5.0.1",
     "mongoose-findorcreate": "^2.0.0",
     "music-api": "^0.3.11",
+    "node-soundcloud": "0.0.6",
     "passport": "^0.3.2",
     "passport-baidu": "0.0.1"
   },

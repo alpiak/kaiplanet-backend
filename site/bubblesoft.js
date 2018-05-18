@@ -3,15 +3,14 @@
  */
 
 const fs = require('fs'),
-    Promise = require('bluebird');
-
-Promise.promisifyAll(fs);
-
-const express = require('express'),
+    Promise = require('bluebird'),
+    express = require('express'),
     bodyParser = require('body-parser'),
     proxy = require('http-proxy-middleware');
 
 const credentials = require('./credentials');
+
+Promise.promisifyAll(fs);
 
 const app = express();
 

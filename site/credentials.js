@@ -30,5 +30,6 @@ module.exports = {
         }
     },
     cookieSecret: 'correct horse battery staple',
-    darkSkyKey: '5e1c8c7eab6320aa615d40e3af1aa644'
+    darkSkyKey: '5e1c8c7eab6320aa615d40e3af1aa644',
+    soundCloudClientId: '4bfb6af6b3fc1982ae613dbcb6f0d1d5'
 };
