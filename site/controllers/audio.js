@@ -57,7 +57,7 @@ const search = async (keywords, source, limit) => {
                 artists: track.artists.map(artist => {
                     return { name: artist.name };
                 }),
-                picture: track.album.coverBig,
+                picture: track.album.coverBig.replace(/^https/, 'http'),
                 source: source
             };
         },
@@ -114,22 +114,22 @@ const sources = {
                 if (tracks && tracks.length > 1) {
                     tracks = tracks.slice(1);
                 }
-
-                if (!tracks || !tracks.length) {
-                    tracks = await SC.get('/tracks');
-                }
-
-                const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
-
-                return {
-                    id: String(randomTrack.id),
-                    name: randomTrack.title,
-                    duration: +randomTrack.duration,
-                    artists: [{ name: randomTrack.user.username }],
-                    picture: track.artwork_url,
-                    source: 'soundcloud'
-                };
             }
+
+            if (!tracks || !tracks.length) {
+                tracks = await SC.get('/tracks', {});
+            }
+
+            const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            return {
+                id: String(randomTrack.id),
+                name: randomTrack.title,
+                duration: +randomTrack.duration,
+                artists: [{ name: randomTrack.user.username }],
+                picture: randomTrack.artwork_url,
+                source: 'soundcloud'
+            };
         }
     },
     netease: {
@@ -645,7 +645,7 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search in
      */
     async getRecommend(req, res) {
-        try {
+        // try {
             if (!req.body.sources || !req.body.sources.length) {
                 req.body.sources = Object.keys(sources);
             }
@@ -661,11 +661,11 @@ module.exports = {
                     } : {}
                 })
             });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        // } catch (e) {
+        //     res.json({
+        //         code: -1,
+        //         message: 'Query Failed - ' + e.message
+        //     });
+        // }
     }
 };
