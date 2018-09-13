@@ -342,7 +342,8 @@ const sources = {
         },
 
         async getStreamUrl(id) {
-            return (await musicAPI.getSong('qq', { id })).url;
+            // return (await musicAPI.getSong('qq', { id })).url;
+            return (await qq.getTrackStreamUrls(id)).mp3_h;
         },
 
         async getRecommend({ track: { name, artists } }) {
@@ -535,6 +536,12 @@ module.exports = {
         }
     },
 
+    /**
+     * @api {post} /audio/streamurl
+     *
+     * @apiParam {String} id
+     * @apiParam {String} source
+     */
     async getStreamUrl(req, res) {
         try {
             res.json({
