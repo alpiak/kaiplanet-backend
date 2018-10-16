@@ -26,5 +26,31 @@ module.exports = {
                 err => reject('fetch error')
             )
         });
+    },
+
+    getMusicUrl(id, br = 999000) {
+        const data = {
+            ids: [id],
+            br: br,
+            csrf_token: ''
+        };
+        const cookie = '';
+
+        return new Promise((resolve, reject) => {
+            createWebAPIRequest(
+                'music.163.com',
+                '/weapi/song/enhance/player/url',
+                'POST',
+                data,
+                cookie,
+                music_req => {
+                    resolve(music_req);
+                },
+                err => {
+                    reject('fetch error');
+                }
+            );
+        });
+
     }
 }
