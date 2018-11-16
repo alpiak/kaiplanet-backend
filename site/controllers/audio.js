@@ -57,7 +57,7 @@ const search = async (keywords, source, limit) => {
                 artists: track.artists.map(artist => {
                     return { name: artist.name };
                 }),
-                picture: track.album.coverBig,
+                picture: track.album.coverBig.replace(/^https/, 'http'),
                 source: source
             };
         },
@@ -66,72 +66,6 @@ const search = async (keywords, source, limit) => {
 };
 
 const sources = {
-    soundcloud: {
-        id: 'soundcloud',
-        name: 'SoundCloud',
-
-        async search(keywords, limit) {
-            const tracks = await SC.get('/tracks', {
-                q: keywords,
-                limit
-            });
-
-            return {
-                _tracks: tracks,
-                get(index) {
-                    const track = this._tracks[index];
-
-                    return {
-                        id: String(track.id),
-                        name: track.title,
-                        duration: +track.duration,
-                        artists: [{ name: track.user.username }],
-                        picture: track.artwork_url,
-                        source: 'soundcloud'
-                    }
-                },
-                length: tracks.length
-            };
-        },
-
-        async getStreamUrl(id) {
-            return (await SC.get('/tracks', { ids: String(id) }))[0].stream_url + `?client_id=${credentials.soundCloudClientId}`;
-        },
-
-        async getRecommend({ track: { name, artists } }) {
-            let tracks;
-
-            if (name) {
-                const track = (await SC.get('/tracks', {
-                    q: name,
-                    limit: 1
-                }))[0];
-
-                if (track) {
-                    tracks = await SC.get('/tracks', { tags: track.tag_list.replace(/\s*"(?:.|\n)*"/g, '').replace(/^\s*/g, '').split(/\s+/).join(',') });
-                }
-
-                if (tracks && tracks.length > 1) {
-                    tracks = tracks.slice(1);
-                }
-
-                if (!tracks || !tracks.length) {
-                    tracks = await SC.get('/tracks');
-                }
-
-                const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
-
-                return {
-                    id: String(randomTrack.id),
-                    name: randomTrack.title,
-                    duration: +randomTrack.duration,
-                    artists: [{ name: randomTrack.user.username }],
-                    picture: track.artwork_url,
-                    source: 'soundcloud'
-                };
-            }
-        }
-    },
     netease: {
         id: 'netease',
         name: '网易云音乐',
@@ -141,7 +75,9 @@ const sources = {
         },
 
         async getStreamUrl(id) {
-          return (await musicAPI.getSong('netease', { id })).url;
+            // return (await musicAPI.getSong('netease', { id })).url;
+            // return JSON.parse(await NeteaseCloudMusicApi.getMusicUrl(id, 0, 20)).data[0].url;
+            return `http://music.163.com/song/media/outer/url?id=${id}.mp3`;
         },
 
         async getRecommend({ track: { name, artists } }) {
@@ -342,7 +278,8 @@ const sources = {
         },
 
         async getStreamUrl(id) {
-            return (await musicAPI.getSong('qq', { id })).url;
+            // return (await musicAPI.getSong('qq', { id })).url;
+            return (await qq.getTrackStreamUrls(id)).mp3_h;
         },
 
         async getRecommend({ track: { name, artists } }) {
@@ -382,6 +319,72 @@ const sources = {
                         });
                 }
             }
+        }
+    },
+    soundcloud: {
+        id: 'soundcloud',
+        name: 'SoundCloud',
+
+        async search(keywords, limit) {
+            const tracks = await SC.get('/tracks', {
+                q: keywords,
+                limit
+            });
+
+            return {
+                _tracks: tracks,
+                get(index) {
+                    const track = this._tracks[index];
+
+                    return {
+                        id: String(track.id),
+                        name: track.title,
+                        duration: +track.duration,
+                        artists: [{ name: track.user.username }],
+                        picture: track.artwork_url,
+                        source: 'soundcloud'
+                    }
+                },
+                length: tracks.length
+            };
+        },
+
+        async getStreamUrl(id) {
+            return (await SC.get('/tracks', { ids: String(id) }))[0].stream_url + `?client_id=${credentials.soundCloudClientId}`;
+        },
+
+        async getRecommend({ track: { name, artists } }) {
+            let tracks;
+
+            if (name) {
+                const track = (await SC.get('/tracks', {
+                    q: name,
+                    limit: 1
+                }))[0];
+
+                if (track) {
+                    tracks = await SC.get('/tracks', { tags: track.tag_list.replace(/\s*"(?:.|\n)*"/g, '').replace(/^\s*/g, '').split(/\s+/).join(',') });
+                }
+
+                if (tracks && tracks.length > 1) {
+                    tracks = tracks.slice(1);
+                }
+            }
+
+            if (!tracks || !tracks.length) {
+                tracks = await SC.get('/tracks', {});
+            }
+
+            const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            return {
+                id: String(randomTrack.id),
+                name: randomTrack.title,
+                duration: +randomTrack.duration,
+                artists: [{ name: randomTrack.user.username }],
+                picture: randomTrack.artwork_url,
+                source: 'soundcloud'
+            };
         }
     },
     hearthis: {
@@ -535,6 +538,12 @@ module.exports = {
         }
     },
 
+    /**
+     * @api {post} /audio/streamurl
+     *
+     * @apiParam {String} id
+     * @apiParam {String} source
+     */
     async getStreamUrl(req, res) {
         try {
             res.json({
@@ -645,7 +654,7 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search in
      */
     async getRecommend(req, res) {
-        try {
+        // try {
             if (!req.body.sources || !req.body.sources.length) {
                 req.body.sources = Object.keys(sources);
             }
@@ -661,11 +670,11 @@ module.exports = {
                     } : {}
                 })
             });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        // } catch (e) {
+        //     res.json({
+        //         code: -1,
+        //         message: 'Query Failed - ' + e.message
+        //     });
+        // }
     }
 };

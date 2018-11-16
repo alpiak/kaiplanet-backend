@@ -3,9 +3,44 @@
  */
 
 const https = require('https'),
+    http = require('http'),
     querystring = require('querystring');
 
 const qq = {
+        getTrackStreamUrls(id) {
+            return new Promise((resolve, reject) => {
+                const options = {
+                    protocol: 'http:',
+                    hostname: 'www.douqq.com',
+                    path: '/qqmusic/qqapi.php',
+                    method: 'POST'
+                };
+
+                const req = http.request(options, res => {
+                    res.setEncoding('utf8');
+
+                    let data = '';
+
+                    res.on('data', chunk => {
+                        data += chunk;
+                    });
+
+                    res.on('end', () => {
+                        const parsedData = JSON.parse(JSON.parse(data));
+
+                        resolve(parsedData);
+                    });
+                });
+
+                req.on('error', e => {
+                    reject(e);
+                });
+
+                req.write(querystring.stringify({ mid: id }));
+                req.end();
+            });
+        },
+
         getTopList() {
             return new Promise((resolve, reject) => {
                 const options = {
@@ -14,12 +49,12 @@ const qq = {
                     method: 'GET'
                 };
 
-                https.request(options, (res) => {
+                http.request(options, res => {
                     res.setEncoding('utf8');
 
                     let data = '';
 
-                    res.on('data', (chunk) => {
+                    res.on('data', chunk => {
                         data += chunk;
                     });
 
@@ -29,13 +64,14 @@ const qq = {
                         resolve(parsedData);
                     });
                 })
-                    .on('error', (e) => {
+                    .on('error', e => {
                         reject(e);
                     })
                     .end();
             });
         }
     },
+
     hearthis = {
         search(keywords, limit) {
             return new Promise((resolve, reject) => {
@@ -45,12 +81,12 @@ const qq = {
                     method: 'GET'
                 };
 
-                https.request(options, (res) => {
+                https.request(options, res => {
                     res.setEncoding('utf8');
 
                     let data = '';
 
-                    res.on('data', (chunk) => {
+                    res.on('data', chunk => {
                         data += chunk;
                     });
 
@@ -64,7 +100,7 @@ const qq = {
                         }
                     });
                 })
-                    .on('error', (e) => {
+                    .on('error', e => {
                         reject(e);
                     })
                     .end();
@@ -79,12 +115,12 @@ const qq = {
                     method: 'GET'
                 };
 
-                https.request(options, (res) => {
+                https.request(options, res => {
                     res.setEncoding('utf8');
 
                     let data = '';
 
-                    res.on('data', (chunk) => {
+                    res.on('data', chunk => {
                         data += chunk;
                     });
                     res.on('end', () => {
@@ -97,7 +133,7 @@ const qq = {
                         }
                     });
                 })
-                    .on('error', (e) => {
+                    .on('error', e => {
                         reject(e);
                     })
                     .end();
@@ -116,12 +152,12 @@ const qq = {
                     method: 'GET'
                 };
 
-                https.request(options, (res) => {
+                https.request(options, res => {
                     res.setEncoding('utf8');
 
                     let data = '';
 
-                    res.on('data', (chunk) => {
+                    res.on('data', chunk => {
                         data += chunk;
                     });
                     res.on('end', () => {
@@ -134,7 +170,7 @@ const qq = {
                         }
                     });
                 })
-                    .on('error', (e) => {
+                    .on('error', e => {
                         reject(e);
                     })
                     .end();

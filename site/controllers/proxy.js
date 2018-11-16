@@ -16,7 +16,7 @@ let location;
 module.exports = {
     registerRoutes(app) {
         app.use('/soundcloud', cache('24 hours'), (req, res, next) => {
-                https.get(`https://api.soundcloud.com${req.url}?client_id=${credentials.soundCloudClientId}`, originRes => {
+                https.get(`https://api.soundcloud.com${req.url}`, originRes => {
                     if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
                         location = url.parse(originRes.headers.location);
 
@@ -113,6 +113,9 @@ module.exports = {
 
         app.use('/qq', cache('24 hours'), proxy({
             target: 'http://dl.stream.qqmusic.qq.com',
+            pathRewrite: {
+                '^/qq' : ''
+            },
             changeOrigin: true
         }));
 
