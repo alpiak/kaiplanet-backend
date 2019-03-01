@@ -14,6 +14,14 @@ let location;
 
 module.exports = {
     registerRoutes(app) {
+        app.use('/kaiplanet', cache('24 hours'), proxy({
+            target: 'http://kaiplanet.net',
+            pathRewrite: {
+                '^/kaiplanet' : '/'
+            },
+            changeOrigin: true
+        }));
+
         app.use('/soundcloud', cache('24 hours'), (req, res, next) => {
                 https.get(`https://api.soundcloud.com${req.url}`, originRes => {
                     if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
