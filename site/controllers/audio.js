@@ -66,6 +66,54 @@ const search = async (keywords, source, limit) => {
 };
 
 const sources = {
+    kaiplanet: {
+        id: 'kaiplanet',
+        name: 'KaiPlanet',
+        async search(keywords, limit) {
+            return {
+                get() {
+                    return {
+                        id: 0,
+                        name: 'Demo',
+                        artists: [{ name: 'Unknown' }],
+                        picture: 'http://kaiplanet.net/lighthouse.jpg',
+                        source: 'kaiplanet'
+                    }
+                },
+                length: 1
+            };
+        },
+        async getStreamUrl() {
+            return 'http://kaiplanet.net/demo.mp3';
+        },
+        async getRecommend() {
+            return {
+                id: 0,
+                name: 'Demo',
+                artists: [{ name: 'Unknown' }],
+                picture: 'http://kaiplanet.net/lighthouse.jpg',
+                source: 'kaiplanet'
+            }
+        },
+
+        channels: {
+            demo: {
+                type: 'demo',
+                name: 'Demo',
+
+                async getList() {
+                    return [{
+                        id: 0,
+                        name: 'Demo',
+                        artists: [{ name: 'Unknown' }],
+                        picture: 'http://kaiplanet.net/lighthouse.jpg',
+                        source: 'kaiplanet'
+                    }]
+                }
+
+            }
+        }
+    },
     netease: {
         id: 'netease',
         name: '网易云音乐',
