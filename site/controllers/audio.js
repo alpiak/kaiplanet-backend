@@ -2,8 +2,7 @@
  * Created by qhyang on 2017/12/28.
  */
 
-const https = require('https'),
-    apicache = require('apicache'),
+const apicache = require('apicache'),
     musicAPI = require('music-api'),
     SC = require('node-soundcloud'),
     NeteaseCloudMusicApi = require('../vendors/NeteaseCloudMusicApi/NeteaseCloudMusicApi');
@@ -69,6 +68,7 @@ const sources = {
     kaiplanet: {
         id: 'kaiplanet',
         name: 'KaiPlanet',
+
         async search(keywords, limit) {
             return {
                 get() {
@@ -86,6 +86,7 @@ const sources = {
         async getStreamUrl() {
             return 'http://kaiplanet.net/demo.mp3';
         },
+
         async getRecommend() {
             return {
                 id: 0,
@@ -327,46 +328,38 @@ const sources = {
 
         async getStreamUrl(id) {
             // return (await musicAPI.getSong('qq', { id })).url;
-            return (await qq.getTrackStreamUrls(id)).mp3_h;
+            return (await qq.getTrackStreamUrl(id))[0];
         },
 
         async getRecommend({ track: { name, artists } }) {
-            const tracks = (await qq.getTopList()).songlist,
+            const tracks = (await qq.getList(4)).songList,
                 randomTrack = tracks[Math.floor(tracks.length * Math.random())];
 
             return {
-                id: String(randomTrack.data.songmid),
-                name: randomTrack.data.songname,
-                duration: randomTrack.data.interval * 1000,
-                artists: randomTrack.data.singer.map(artist => {
-                    return { name: artist.name };
-                }),
-                picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + randomTrack.data.albummid + '.jpg?max_age=2592000',
+                id: String(randomTrack.songMid),
+                name: randomTrack.songName,
+                artists: randomTrack.singer.map(singer => ({ name: singer.singerName })),
+                picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + randomTrack.albumMid + '.jpg?max_age=2592000',
                 source: 'qq'
             };
         },
 
-        channels: {
-            popular: {
-                type: 'popular',
-                name: '安利XS·巅峰榜·流行指数',
+        channels: async () => (await qq.getLists()).map((list) => ({
+            type: String(list.id),
+            name: list.title
+        })),
 
-                async getList() {
-                    return (await qq.getTopList()).songlist
-                        .map(track => {
-                            return {
-                                id: String(track.data.songmid),
-                                name: track.data.songname,
-                                duration: track.data.interval * 1000,
-                                artists: track.data.singer.map(artist => {
-                                    return { name: artist.name };
-                                }),
-                                picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + track.data.albummid + '.jpg?max_age=2592000',
-                                source: 'qq'
-                            };
-                        });
-                }
-            }
+        async getList(channelType) {
+            return (await qq.getList(channelType)).songList
+                .map(track => {
+                    return {
+                        id: String(track.songMid),
+                        name: track.songName,
+                        artists: track.singer.map(singer => ({ name: singer.singerName })),
+                        picture: 'http://y.gtimg.cn/music/photo_new/T002R500x500M000' + track.albumMid + '.jpg?max_age=2592000',
+                        source: 'qq'
+                    };
+                });
         }
     },
     soundcloud: {
@@ -653,12 +646,20 @@ module.exports = {
      */
     async getList(req, res) {
         try {
-            res.json({
-                code: 1,
-                data: await sources[req.body.source].channels[req.body.channel].getList({
+            const data = await (async () => {
+                if (sources[req.body.source].getList) {
+                    return await sources[req.body.source].getList(req.body.channel);
+                }
+
+                return await sources[req.body.source].channels[req.body.channel].getList({
                     limit: req.body.limit,
                     offset: req.body.offset
-                })
+                });
+            })();
+
+            res.json({
+                code: 1,
+                data
             });
         } catch (e) {
             res.json({
@@ -672,18 +673,26 @@ module.exports = {
         try {
             res.json({
                 code: 1,
-                data: Object.values(sources).map(source => {
+                data: await Promise.all(Object.values(sources).map(async (source) => {
                     return {
                         id: source.id,
                         name: source.name,
-                        channels: !source.channels ? [] : Object.values(source.channels).map(channel => {
-                            return {
-                                type: channel.type,
-                                name: channel.name
+                        channels: await (async () => {
+                            switch (typeof source.channels) {
+                                case 'object':
+                                    return Object.values(source.channels).map(channel => ({
+                                        type: channel.type,
+                                            name: channel.name
+                                    }));
+                                case 'function':
+                                    return (await source.channels());
+                                case 'undefined':
+                                default:
+                                    return [];
                             }
-                        })
+                        })()
                     }
-                })
+                }))
             });
         } catch (e) {
             res.json({
