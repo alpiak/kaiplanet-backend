@@ -2,20 +2,14 @@
  * Created by qhyang on 2018/4/27.
  */
 
-const http = require('http'),
-    https = require('https'),
-    url = require('url');
-
-const proxy = require('http-proxy-middleware'),
-    cache = require('apicache').middleware;
-
-const credentials = require('../credentials');
-
-let location;
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const proxy = require('http-proxy-middleware');
 
 module.exports = {
     registerRoutes(app) {
-        app.use('/kaiplanet', cache('24 hours'), proxy({
+        app.use('/kaiplanet', proxy({
             target: 'http://kaiplanet.net',
             pathRewrite: {
                 '^/kaiplanet' : '/'
@@ -23,31 +17,33 @@ module.exports = {
             changeOrigin: true
         }));
 
-        app.use('/soundcloud', cache('24 hours'), (req, res, next) => {
-                https.get(`https://api.soundcloud.com${req.url}`, originRes => {
-                    if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
-                        location = url.parse(originRes.headers.location);
+        app.use('/soundcloud', (req, res, next) => {
+            let location;
 
-                        req.originalUrl = location.path;
+            https.get(`https://api.soundcloud.com${req.url}`, originRes => {
+                if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
+                    location = url.parse(originRes.headers.location);
 
-                        if (!location.protocol) {
-                            location.protocol = 'https:';
-                        }
+                    req.originalUrl = location.path;
 
-                        if (!location.host) {
-                            location.host = 'api.soundcloud.com';
-                        }
-
-                        req._targetLocation = location;
-                    } else {
-                        req._targetLocation = {
-                            protocol: 'https:',
-                            host: 'api.soundcloud.com'
-                        };
+                    if (!location.protocol) {
+                        location.protocol = 'https:';
                     }
 
-                    next();
-                });
+                    if (!location.host) {
+                        location.host = 'api.soundcloud.com';
+                    }
+
+                    req._targetLocation = location;
+                } else {
+                    req._targetLocation = {
+                        protocol: 'https:',
+                        host: 'api.soundcloud.com'
+                    };
+                }
+
+                next();
+            });
         }, (req, res) => {
             proxy({
                 target: `${req._targetLocation.protocol}//${req._targetLocation.host}`,
@@ -55,7 +51,7 @@ module.exports = {
             })(req, res)
         });
 
-        app.use('/netease', cache('24 hours'), async (req, res, next) => {
+        app.use('/netease', async (req, res, next) => {
             let redirectLocation = url.parse(`http://music.163.com${req.url}`);
 
             const sendReq = location => {
@@ -119,7 +115,7 @@ module.exports = {
             })(req, res);
         });
 
-        app.use('/qq', cache('24 hours'), proxy({
+        app.use('/qq', proxy({
             target: 'http://dl.stream.qqmusic.qq.com',
             pathRewrite: {
                 '^/qq' : ''
@@ -127,7 +123,7 @@ module.exports = {
             changeOrigin: true
         }));
 
-        app.use('/hearthis', cache('24 hours'), (req, res, next) => {
+        app.use('/hearthis', (req, res, next) => {
             https.get(`https://hearthis.at${req.url}`, originRes => {
                 if (originRes.statusCode > 300 && originRes.statusCode < 400 && originRes.headers.location) {
                     const location = url.parse(originRes.headers.location);
@@ -159,7 +155,7 @@ module.exports = {
             })(req, res);
         });
 
-        app.use('/proxy', cache('24 hours'), (req, res) => {
+        app.use('/proxy', (req, res) => {
             const url = req.url;
 
             proxy({
