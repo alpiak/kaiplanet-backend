@@ -3,72 +3,36 @@
  */
 
 const https = require('https'),
-    http = require('http'),
     querystring = require('querystring');
 
+const { request } = require('./utils');
+
 const qq = {
-        getTrackStreamUrls(id) {
-            return new Promise((resolve, reject) => {
-                const options = {
-                    protocol: 'http:',
-                    hostname: 'www.douqq.com',
-                    path: '/qqmusic/qqapi.php',
-                    method: 'POST'
-                };
-
-                const req = http.request(options, res => {
-                    res.setEncoding('utf8');
-
-                    let data = '';
-
-                    res.on('data', chunk => {
-                        data += chunk;
-                    });
-
-                    res.on('end', () => {
-                        const parsedData = JSON.parse(JSON.parse(data));
-
-                        resolve(parsedData);
-                    });
-                });
-
-                req.on('error', e => {
-                    reject(e);
-                });
-
-                req.write(querystring.stringify({ mid: id }));
-                req.end();
-            });
+        async getTrackStreamUrl(id) {
+            return (await request({
+                protocol: 'https:',
+                hostname: 'music.niubishanshan.top',
+                path: `/api/v2/music/songUrllist/${id}`,
+                method: 'GET'
+            })).data;
         },
 
-        getTopList() {
-            return new Promise((resolve, reject) => {
-                const options = {
-                    hostname: 'c.y.qq.com',
-                    path: '/v8/fcg-bin/fcg_v8_toplist_cp.fcg?tpl=3&page=detail&date=2018-03-06&topid=4&type=top&song_begin=0&song_num=30&g_tk=5381&jsonpCallback=&loginUin=0&hostUin=0&format=jsonp&inCharset=utf8&outCharset=utf-8&notice=0&platform=yqq&needNewCode=0',
-                    method: 'GET'
-                };
+        async getLists() {
+            return (await request({
+                protocol: 'https:',
+                hostname: 'music.niubishanshan.top',
+                path: `/api/v2/music/toplist`,
+                method: 'GET'
+            })).data;
+        },
 
-                http.request(options, res => {
-                    res.setEncoding('utf8');
-
-                    let data = '';
-
-                    res.on('data', chunk => {
-                        data += chunk;
-                    });
-
-                    res.on('end', () => {
-                        const parsedData = JSON.parse(data);
-
-                        resolve(parsedData);
-                    });
-                })
-                    .on('error', e => {
-                        reject(e);
-                    })
-                    .end();
-            });
+        async getList(id) {
+            return (await request({
+                protocol: 'https:',
+                hostname: 'music.niubishanshan.top',
+                path: `/api/v2/music/songList/${id}`,
+                method: 'GET'
+            })).data;
         }
     },
 
