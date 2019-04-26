@@ -124,7 +124,7 @@ module.exports = {
 
         const fileData = Buffer.from(req.body.data, 'base64');
 
-        require('../libraries/file')().uploadFilesToAliyun({
+        require('../services/file')().uploadFilesToAliyun({
             img: {
                 buffer: fileData,
                 name: req.user.userId + '_' + req.body.name

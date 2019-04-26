@@ -10,7 +10,7 @@ module.exports = {
     getCurrentTime: (req, res) => {
         res.json({
             code: 1,
-            data: require('../libraries/time')().getCurrentTime()
+            data: require('../services/time')().getCurrentTime()
         });
     }
 };

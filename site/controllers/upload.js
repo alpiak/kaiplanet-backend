@@ -25,7 +25,7 @@ module.exports = {
                 fields.unique = true;
             }
 
-            require('../libraries/file')().uploadFilesToAliyun(files, 'md5', fields.unique).then(results => {
+            require('../services/file')().uploadFilesToAliyun(files, 'md5', fields.unique).then(results => {
                 res.send({
                     code: 1,
                     data: results
@@ -45,7 +45,7 @@ module.exports = {
             req.body.unique = true;
         }
 
-        require('../libraries/file')().uploadFilesToAliyun({
+        require('../services/file')().uploadFilesToAliyun({
             img: {
                 buffer: fileData,
                 name: req.body.unique ? '' : (req.user.userId + '_') + req.body.name

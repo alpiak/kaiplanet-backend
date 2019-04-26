@@ -29,7 +29,7 @@ SC.get = (() => {
 
 SC.init({ id: credentials.soundCloudClientId });
 
-const audioSource = require('../libraries/audioSource'),
+const audioSource = require('../services/audioSource'),
     qq = audioSource.qq,
     hearthis = audioSource.hearthis;
 

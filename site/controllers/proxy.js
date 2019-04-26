@@ -5,11 +5,13 @@
 const http = require('http');
 const https = require('https');
 const url = require('url');
-const proxy = require('http-proxy-middleware');
+const _proxy = require('http-proxy-middleware');
+
+const { proxy } = require('../services/proxy');
 
 module.exports = {
     registerRoutes(app) {
-        app.use('/kaiplanet', proxy({
+        app.use('/kaiplanet', _proxy({
             target: 'http://kaiplanet.net',
             pathRewrite: {
                 '^/kaiplanet' : '/'
@@ -45,7 +47,7 @@ module.exports = {
                 next();
             });
         }, (req, res) => {
-            proxy({
+            _proxy({
                 target: `${req._targetLocation.protocol}//${req._targetLocation.host}`,
                 changeOrigin: true
             })(req, res)
@@ -109,13 +111,13 @@ module.exports = {
             }
 
         }, (req, res) => {
-            proxy({
+            _proxy({
                 target: `${req._targetLocation.protocol}//${req._targetLocation.host}`,
                 changeOrigin: true
             })(req, res);
         });
 
-        app.use('/qq', proxy({
+        app.use('/qq', _proxy({
             target: 'http://dl.stream.qqmusic.qq.com',
             pathRewrite: {
                 '^/qq' : ''
@@ -149,22 +151,12 @@ module.exports = {
                 next();
             });
         }, (req, res) => {
-            proxy({
+            _proxy({
                 target: `${req._targetLocation.protocol}//${req._targetLocation.host}`,
                 changeOrigin: true
             })(req, res);
         });
 
-        app.use('/proxy', (req, res) => {
-            const url = req.url;
-
-            proxy({
-                target: `${req.protocol}:/${url.slice(0, url.indexOf('/', 1))}`,
-                pathRewrite() {
-                    return url.slice(url.indexOf('/', 1));
-                },
-                changeOrigin: true
-            })(req, res);
-        });
+        app.use('/proxy', proxy());
     }
 };

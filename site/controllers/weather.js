@@ -10,9 +10,9 @@ module.exports = {
     },
 
     darkSky: (req, res) => {
-        const ip = require('../libraries/request')(req).getClientIp();
+        const ip = require('../services/request')(req).getClientIp();
 
-        require('../libraries/location')().getLocation(ip, (location) => {
+        require('../services/location')().getLocation(ip, (location) => {
             const options = {
                 hostname: 'api.darksky.net',
                 path: '/forecast/' + require('../credentials').darkSkyKey + '/' + location.coords.latitude + ',' + location.coords.longitude,

@@ -14,11 +14,9 @@ const credentials = require('./credentials');
 
 const app = express();
 
-app.use(bodyParser.json());
-
 app.set('port', process.env.PORT || 3000);
 
-let auth = require("./controllers/auth")(app, {
+const auth = require("./controllers/auth")(app, {
     providers: credentials.authProviders,
     successRedirect: require('./config').urlBase,
     failureRedirect: require('./config').urlBase
@@ -26,10 +24,13 @@ let auth = require("./controllers/auth")(app, {
 auth.init();
 auth.registerRoutes();
 
+require('./controllers/proxy').registerRoutes(app);
+
+app.use(bodyParser.json());
+
 require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
-require('./controllers/proxy').registerRoutes(app);
 require('./controllers/audio').registerRoutes(app);
 
 // Static views
