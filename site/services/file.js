@@ -14,7 +14,6 @@ const client = new OSS({
     bucket: 'bubblesoft',
 });
 
-
 module.exports = function () {
     return {
         uploadFilesToAliyun: function (files, hashMethod, unique) {

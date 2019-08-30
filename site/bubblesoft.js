@@ -18,8 +18,8 @@ app.set('port', process.env.PORT || 3000);
 
 const auth = require("./controllers/auth")(app, {
     providers: credentials.authProviders,
-    successRedirect: require('./config').urlBase,
-    failureRedirect: require('./config').urlBase
+    successRedirect: require('./config').basePath,
+    failureRedirect: require('./config').basePath,
 });
 auth.init();
 auth.registerRoutes();
@@ -37,7 +37,7 @@ require('./controllers/audio').registerRoutes(app);
 
 let autoViews = {};
 
-app.use(function(req, res, next){
+app.use(function(req, res, next) {
     (async function () {
         const path = req.path.toLowerCase();
 

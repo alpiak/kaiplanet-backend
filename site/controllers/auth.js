@@ -2,8 +2,7 @@
  * Created by qhyang on 2017/5/17.
  */
 
-const express = require('express'),
-    passport = require('passport'),
+const passport = require('passport'),
     BaiduStrategy = require('passport-baidu').Strategy;
 
 passport.serializeUser(function(user, done) {
@@ -21,10 +20,10 @@ passport.deserializeUser(function(id, done) {
 
 module.exports = function (app, options) {
     if (!options.successRedirect) {
-        options.successRedirect = require('../config').urlBase + '/home';
+        options.successRedirect = require('../config').basePath + '/home';
     }
     if (!options.failureRedirect) {
-        options.failureRedirect = require('../config').urlBase + '/home';
+        options.failureRedirect = require('../config').basePath + '/home';
     }
 
     return {
@@ -87,7 +86,7 @@ module.exports = function (app, options) {
                 })(req, res, next);
             });
 
-            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: require('../config').urlBase + '/home' }), function(req, res) {
+            app.get('/auth/baidu/callback', passport.authenticate('baidu', { failureRedirect: require('../config').basePath + '/home' }), function(req, res) {
                 // If this function gets called, authentication was successful.
                 // `req.user` contains the authenticated user.
                 //TODO: console.log(req.user);

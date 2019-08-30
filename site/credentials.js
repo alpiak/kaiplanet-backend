@@ -18,6 +18,10 @@ module.exports = {
             development: {
                 appId: 'AKuPWCF1NAvjzcdg6iHa8i8E',
                 appSecret: 'GDOEBvSWuRFuVHGn6rlteZVwEZexUP7B',
+            },
+            production: {
+                appId: 'AKuPWCF1NAvjzcdg6iHa8i8E',
+                appSecret: 'GDOEBvSWuRFuVHGn6rlteZVwEZexUP7B',
             }
         }
     },
@@ -25,11 +29,14 @@ module.exports = {
         ali: {
             development: {
                 accessKeyId: 'LTAITxy7FilZOMIQ',
-                accessKeySecret: 'C5eGXEVHHeQZrXsfnazPOzxWZZV9R7'
+                accessKeySecret: 'C5eGXEVHHeQZrXsfnazPOzxWZZV9R7',
+            },
+            production: {
+                accessKeyId: 'LTAITxy7FilZOMIQ',
+                accessKeySecret: 'C5eGXEVHHeQZrXsfnazPOzxWZZV9R7',
             }
         }
     },
     cookieSecret: 'correct horse battery staple',
     darkSkyKey: '5e1c8c7eab6320aa615d40e3af1aa644',
-    soundCloudClientId: '4bfb6af6b3fc1982ae613dbcb6f0d1d5'
 };
