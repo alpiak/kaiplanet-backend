@@ -16,18 +16,12 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 return null;
             }
 
-            const picture = await (async (track) => {
-                try {
-                    return await this._getPicture(track);
-                } catch (e) {
-                    return null;
-                }
-            })(track);
+            const picture = await this._getPicture(track);
 
             return new Track(String(track.id), track.name, track.duration, track.artists.map((artist) => new Artist(artist.name)), picture, this._source);
         }
 
-        _getPicture(track) {
+        _getPicture() {
             return null;
         }
     }
@@ -68,8 +62,12 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             const getPicture = (track) => this._getPicture(track);
 
             return new class extends NeteaseCloudMusicApiTrackList {
-                _getPicture(track) {
-                    return getPicture(track);
+                async _getPicture(track) {
+                    try {
+                        return await getPicture(track);
+                    } catch (e) {
+                        return super._getPicture(track);
+                    }
                 };
             }(tracks, source);
         }
@@ -104,8 +102,12 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             const getPicture = (track) => this._getPicture(track);
 
             const trackList = new class extends NeteaseCloudMusicApiTrackList {
-                _getPicture(track) {
-                    return getPicture(track);
+                async _getPicture(track) {
+                    try {
+                        return await getPicture(track);
+                    } catch (e) {
+                        return super._getPicture(track);
+                    }
                 }
             }(tracks, source);
 
@@ -159,7 +161,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             try {
                 const details = (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)]))[0];
 
-                return details && details.al && details.al.picUrl;
+                return (details && details.al && details.al.picUrl) || null;
             } catch (e) {
                 throw e;
             }

@@ -56,17 +56,17 @@ module.exports =  () => class {
         });
 
         if (res.code === 200) {
-            if (dataPath.length) {
-                let data = res;
+            let data = res;
 
+            if (dataPath.length) {
                 for (let i = 0; i < dataPath.length; i++) {
                     if (dataPath[i] && data[dataPath[i]]) {
                         data = data[dataPath[i]];
                     }
                 }
-
-                return data || [];
             }
+
+            return data || [];
         }
 
         throw new Error(res.msg);

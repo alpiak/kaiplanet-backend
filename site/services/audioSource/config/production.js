@@ -28,5 +28,14 @@ module.exports = {
                 }
             ]
         },
+        kugouMusicApi: {
+            instances: [
+                {
+                    host: "kaiplanet.net",
+                    port: 4000,
+                    protocol: "http"
+                }
+            ]
+        },
     }
 };

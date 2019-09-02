@@ -16,6 +16,7 @@ module.exports = (env = "development") => {
     const MusicApiProducer = require("./producers/MusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const NodeSoundCloudProducer = require("./producers/NodeSoundCloudProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const HearthisProducer = require("./producers/HearthisProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
+    const KugouMusicApiProducer = require("./producers/KugouMusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
 
     return class {
         static getSources() {
@@ -26,7 +27,7 @@ module.exports = (env = "development") => {
         }
 
         constructor() {
-            [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer].forEach((Producer) => {
+            [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer].forEach((Producer) => {
                 if (Producer.instances && Producer.instances.length) {
                     return Producer.instances.forEach((instance) => {
                         const producer = new Producer(instance.host, instance.port, instance.protocol);
@@ -100,6 +101,7 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
+                        url: track.url,
                         similarity: Math.min(rating + artistsSimilarity, 1),
                     };
                 })

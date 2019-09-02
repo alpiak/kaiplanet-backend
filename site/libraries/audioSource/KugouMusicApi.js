@@ -17,27 +17,15 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    search(t, { limit }) {
-        return this.request("/search/", {
-            t: t.replace(' ', '+'),
-            page: 1,
-            count: limit,
-        });
+    search(keywords) {
+        return this.request("/search", { keywords }, ["data", "lists"]);
     }
 
-    getTrack(id) {
-        return this.request(`/${id}/`);
+    getSongUrl(hash) {
+        return this.request("/songurl", { hash }, ["data"]);
     }
 
-    /**
-     * Get feed.
-     * @param {string="popular","new"} type
-     */
-    getFeed(type) {
-        return this.request("/feed/", { type });
-    }
-
-    async request(path, data) {
+    async request(path, data, dataPath = []) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -47,14 +35,18 @@ module.exports =  () => class {
             data: data
         });
 
-        if (res.success === false) {
-            throw new Error(res.message);
-        }
+        if (res.status === 1) {
+            let data = res;
 
-        if (Array.isArray(res)) {
-            return res;
-        } else if (res.id) {
-            return res;
+            if (dataPath.length) {
+                for (let i = 0; i < dataPath.length; i++) {
+                    if (dataPath[i] && data[dataPath[i]]) {
+                        data = data[dataPath[i]];
+                    }
+                }
+            }
+
+            return data || [];
         }
 
         throw new Error(res.message);
