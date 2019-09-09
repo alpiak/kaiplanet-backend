@@ -7,15 +7,30 @@ const apicache = require('apicache');
 const cache = apicache.middleware;
 
 const AudioSourceService = require("../services/audioSource")(process.env.NODE_ENV);
+const Source = require("../services/audioSource/Source")();
 
 const audioSourceService = new AudioSourceService();
 
-const processReqBody = (reqBody, callback) => {
+const generateResponse = (reqBody, callback) => {
+    const generate = async (query) => {
+        try {
+            return {
+                code: 1,
+                data: await callback(query),
+            };
+        } catch (e) {
+            return {
+                code: -1,
+                message: 'Query Failed - ' + e.message,
+            };
+        }
+    };
+
     if (Array.isArray(reqBody)) {
-        return Promise.all(reqBody.map(callback));
+        return Promise.all(reqBody.map(generate));
     }
 
-    return callback(reqBody);
+    return generate(reqBody);
 };
 
 module.exports = {
@@ -53,22 +68,12 @@ module.exports = {
      * @apiParam {Number} [limit] Optional Max number of items returned
      */
     async search(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await processReqBody(req.body, (reqBody) => {
-                    return audioSourceService.search(reqBody.keywords, {
-                        sourceIds: reqBody.sources,
-                        limit: reqBody.limit,
-                    })
-                }),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message,
-            });
-        }
+        res.json(await generateResponse(req.body, (reqBody) => {
+            return audioSourceService.search(reqBody.keywords, {
+                sourceIds: reqBody.sources,
+                limit: reqBody.limit,
+            })
+        }));
     },
 
     /**
@@ -78,17 +83,7 @@ module.exports = {
      * @apiParam {String} source
      */
     async getStreamUrl(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await processReqBody(req.body, (reqBody) => audioSourceService.getStreamUrls(reqBody.id, reqBody.source)),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message,
-            });
-        }
+        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getStreamUrls(reqBody.id, reqBody.source)));
     },
 
     /**
@@ -97,23 +92,19 @@ module.exports = {
      * @apiParam {String} source ID of the source to get lists from
      */
     async getLists(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await (async () => {
-                    if (Array.isArray(req.body)) {
-                        return await audioSourceService.getLists(req.body.map((reqBody) => (reqBody && reqBody.source)) || null);
-                    }
+        res.json(await generateResponse(((reqBody) => {
+            if ((!Array.isArray(reqBody) && !reqBody.source) || (Array.isArray(reqBody) && !reqBody.length)) {
+                return Source.values().map((source) => ({ source: source.id }))
+            }
 
-                    return (await audioSourceService.getLists([req.body.source]))[0];
-                })(),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+            return reqBody;
+        })(req.body), async (reqBody) => {
+            if (!reqBody.source) {
+                throw new Error("Source not provided or doesn't exist.");
+            }
+
+            return (await audioSourceService.getLists([reqBody.source]))[0];
+        }));
     },
 
     /**
@@ -125,39 +116,17 @@ module.exports = {
      * @apiParam {Number} [offset] Optional Offset to get items
      */
     async getList(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await processReqBody(req.body, async (list) => {
-                    return (await audioSourceService.getList(list.id, list.source, {
-                        limit: list.limit,
-                        offset: list.offset,
-                    }))
-                }),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        res.json(await generateResponse(req.body, (list) => audioSourceService.getList(list.id, list.source, {
+            limit: list.limit,
+            offset: list.offset,
+        })));
     },
 
     /**
      * @api {post} /audio/sources
      */
     async getSources(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: AudioSourceService.getSources(),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        res.json(await generateResponse(req.body, () => AudioSourceService.getSources()));
     },
 
     /**
@@ -169,22 +138,10 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search by
      */
     async getRecommend(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await processReqBody(req.body, (reqBody) => {
-                    return audioSourceService.getRecommend(reqBody.track ? {
-                        name: reqBody.track.name,
-                        artists: reqBody.track.artists
-                    } : null, reqBody.sources)
-                }),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getRecommend(reqBody.track ? {
+            name: reqBody.track.name,
+            artists: reqBody.track.artists
+        } : null, reqBody.sources)));
     },
 
     /**
@@ -195,16 +152,6 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search by
      */
     async getAlternativeTracks(req, res) {
-        try {
-            res.json({
-                code: 1,
-                data: await processReqBody(req.body, (reqBody) => audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, { sourceIds: reqBody.sources })),
-            });
-        } catch (e) {
-            res.json({
-                code: -1,
-                message: 'Query Failed - ' + e.message
-            });
-        }
+        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, { sourceIds: reqBody.sources })));
     },
 };
