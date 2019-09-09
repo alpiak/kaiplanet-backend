@@ -5,8 +5,7 @@
 const fs = require('fs'),
     Promise = require('bluebird'),
     express = require('express'),
-    bodyParser = require('body-parser'),
-    proxy = require('http-proxy-middleware');
+    bodyParser = require('body-parser');
 
 Promise.promisifyAll(fs);
 
@@ -24,10 +23,11 @@ const auth = require("./controllers/auth")(app, {
 auth.init();
 auth.registerRoutes();
 
-require('./controllers/proxy').registerRoutes(app);
+require('./controllers/proxy').registerProxyRoutes(app);
 
 app.use(bodyParser.json());
 
+require('./controllers/proxy').registerRoutes(app);
 require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
