@@ -11,6 +11,12 @@ Promise.promisifyAll(fs);
 
 const credentials = require('./credentials');
 
+const ProxyService = require("./services/ProxyService")(process.env.NODE_ENV);
+const AudioSourceService = require("./services/AudioSourceService")(process.env.NODE_ENV);
+
+const ProxyController = require('./controllers/ProxyController')();
+const AudioController = require('./controllers/AudioController')({ AudioSourceService });
+
 const app = express();
 
 app.set('port', process.env.PORT || 3000);
@@ -23,15 +29,37 @@ const auth = require("./controllers/auth")(app, {
 auth.init();
 auth.registerRoutes();
 
-require('./controllers/proxy').registerProxyRoutes(app);
+const proxyService = new ProxyService();
+const audioSourceService = new AudioSourceService();
+
+audioSourceService.proxyPool = {
+    getProxyList(areaCode) {
+        return proxyService.getProxyList(areaCode);
+    },
+
+    getRandomProxy(areaCode) {
+        const proxies = this.getProxyList(areaCode).slice(0, ProxyService.PROXY_NUM_THRESHOLD);
+
+        return proxies[Math.floor(proxies.length * Math.random())];
+    }
+};
+
+const proxyController = new ProxyController();
+const audioController = new AudioController();
+
+proxyController.proxyService = proxyService;
+audioController.audioSourceService = audioSourceService;
+audioController.proxyService = proxyService;
+
+proxyController.registerProxyRoutes(app);
 
 app.use(bodyParser.json());
 
-require('./controllers/proxy').registerRoutes(app);
+proxyController.registerRoutes(app);
 require('./controllers/user').registerRoutes(app);
 require('./controllers/time').registerRoutes(app);
 require('./controllers/weather').registerRoutes(app);
-require('./controllers/audio').registerRoutes(app);
+audioController.registerRoutes(app, { ProxyService, AudioSourceService});
 
 // Static views
 

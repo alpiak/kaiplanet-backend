@@ -18,7 +18,9 @@ module.exports = (env = "development") => {
     const HearthisProducer = require("./producers/HearthisProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const KugouMusicApiProducer = require("./producers/KugouMusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
 
-    return class {
+    return class AudioSourceService {
+        static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer];
+
         static getSources() {
             return Source.values().map((source) => ({
                 id: source.id,
@@ -26,8 +28,20 @@ module.exports = (env = "development") => {
             }));
         }
 
+        set proxyPool(proxyPool) {
+            this._proxyPool = proxyPool;
+
+            Source.values().forEach((source) => {
+                source.producers.forEach((producer) => {
+                    producer.proxyPool = proxyPool;
+                });
+            });
+        }
+
+        _proxyPool = { getProxyList() { return null; } };
+
         constructor() {
-            [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer].forEach((Producer) => {
+            AudioSourceService.Producers.forEach((Producer) => {
                 if (Producer.instances && Producer.instances.length) {
                     return Producer.instances.forEach((instance) => {
                         const producer = new Producer(instance.host, instance.port, instance.protocol);
@@ -46,7 +60,7 @@ module.exports = (env = "development") => {
             });
         }
 
-        async search(keywords, {sourceIds, limit = 20, sourceRating, producerRating} = {}) {
+        async search(keywords, { sourceIds, limit = 20, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -101,7 +115,7 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
-                        url: track.url,
+                        streamUrl: track.streamUrl,
                         similarity: Math.min(rating + artistsSimilarity, 1),
                     };
                 })
@@ -109,7 +123,7 @@ module.exports = (env = "development") => {
                 .slice(0, limit);
         }
 
-        getLists(sourceIds, {limit, offset, sourceRating, producerRating} = {}) {
+        getLists(sourceIds, { limit, offset, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -150,6 +164,7 @@ module.exports = (env = "development") => {
                 artists: track.artists.map(artist => ({name: artist.name})),
                 picture: track.picture,
                 source: track.source.id,
+                streamUrl: track.streamUrl,
             }));
         }
 
@@ -188,6 +203,7 @@ module.exports = (env = "development") => {
                             artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
                             picture: recommendedTrack.picture,
                             source: recommendedTrack.source.id,
+                            streamUrl: recommendedTrack.streamUrl,
                         };
                     }
                 } catch (e) { }
@@ -231,6 +247,7 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
+                        streamUrl: track.streamUrl,
                         similarity: rating * .5 + artistsSimilarity * .5,
                     };
                 })

@@ -6,10 +6,7 @@ const apicache = require('apicache');
 
 const cache = apicache.middleware;
 
-const AudioSourceService = require("../services/audioSource")(process.env.NODE_ENV);
-const Source = require("../services/audioSource/Source")();
-
-const audioSourceService = new AudioSourceService();
+const Source = require("../services/AudioSourceService/Source")();
 
 const generateResponse = (reqBody, callback) => {
     const generate = async (query) => {
@@ -33,32 +30,43 @@ const generateResponse = (reqBody, callback) => {
     return generate(reqBody);
 };
 
-module.exports = {
+module.exports = ({ AudioSourceService }) => class {
+    set audioSourceService(audioSourceService) {
+        this._audioSourceService = audioSourceService;
+    }
+
+    set proxyService(proxyService) {
+        this._proxyService = proxyService;
+    }
+
+    _audioSourceService;
+    _proxyService;
+
     registerRoutes(app) {
         app.post('/audio/search', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), this.search);
+        }), (req, res) => this.search(req, res));
 
         app.post('/audio/streamurls', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), this.getStreamUrl);
+        }), (req, res) => this.getStreamUrl(req, res));
 
         app.post('/audio/lists', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), this.getLists);
+        }), (req, res) => this.getLists(req, res));
 
         app.post('/audio/list', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), this.getList);
+        }), (req, res) => this.getList(req, res));
 
-        app.post('/audio/sources', cache('5 minutes'), this.getSources);
+        app.post('/audio/sources', cache('5 minutes'), (req, res) => this.getSources(req, res));
 
-        app.post('/audio/recommend', this.getRecommend);
+        app.post('/audio/recommend', (req, res) => this.getRecommend(req, res));
 
         app.post('/audio/alttracks', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), this.getAlternativeTracks);
-    },
+        }), (req, res) => this.getAlternativeTracks(req, res));
+    }
 
     /**
      * @api {post} /audio/search
@@ -69,12 +77,12 @@ module.exports = {
      */
     async search(req, res) {
         res.json(await generateResponse(req.body, (reqBody) => {
-            return audioSourceService.search(reqBody.keywords, {
+            return this._audioSourceService.search(reqBody.keywords, {
                 sourceIds: reqBody.sources,
                 limit: reqBody.limit,
             })
         }));
-    },
+    }
 
     /**
      * @api {post} /audio/streamurls
@@ -83,8 +91,8 @@ module.exports = {
      * @apiParam {String} source
      */
     async getStreamUrl(req, res) {
-        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getStreamUrls(reqBody.id, reqBody.source)));
-    },
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getStreamUrls(reqBody.id, reqBody.source)));
+    }
 
     /**
      * @api {post} /audio/lists
@@ -103,9 +111,9 @@ module.exports = {
                 throw new Error("Source not provided or doesn't exist.");
             }
 
-            return (await audioSourceService.getLists([reqBody.source]))[0];
+            return (await this._audioSourceService.getLists([reqBody.source]))[0];
         }));
-    },
+    }
 
     /**
      * @api {post} /audio/list
@@ -116,18 +124,18 @@ module.exports = {
      * @apiParam {Number} [offset] Optional Offset to get items
      */
     async getList(req, res) {
-        res.json(await generateResponse(req.body, (list) => audioSourceService.getList(list.id, list.source, {
+        res.json(await generateResponse(req.body, (list) => this._audioSourceService.getList(list.id, list.source, {
             limit: list.limit,
             offset: list.offset,
         })));
-    },
+    }
 
     /**
      * @api {post} /audio/sources
      */
     async getSources(req, res) {
         res.json(await generateResponse(req.body, () => AudioSourceService.getSources()));
-    },
+    }
 
     /**
      * @api {post} /audio/recommend
@@ -138,11 +146,11 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search by
      */
     async getRecommend(req, res) {
-        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getRecommend(reqBody.track ? {
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getRecommend(reqBody.track ? {
             name: reqBody.track.name,
             artists: reqBody.track.artists
         } : null, reqBody.sources)));
-    },
+    }
 
     /**
      * @api {post} /audio/alttracks
@@ -152,6 +160,6 @@ module.exports = {
      * @apiParam {String[]} [sources] Optional Sources to search by
      */
     async getAlternativeTracks(req, res) {
-        res.json(await generateResponse(req.body, (reqBody) => audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, { sourceIds: reqBody.sources })));
-    },
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, { sourceIds: reqBody.sources })));
+    }
 };

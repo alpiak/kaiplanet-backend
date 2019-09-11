@@ -1,6 +1,6 @@
 module.exports = () => {
     return class {
-        // _tracks;
+        _tracks;
 
         get length() {
             return this._tracks.length;

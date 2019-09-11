@@ -1,4 +1,3 @@
-
 module.exports = ({ Artist, Track, TrackList, List, Source, Producer }) => class KaiPlanetProducer extends Producer {
     static get sources() {
         return KaiPlanetProducer._sources;

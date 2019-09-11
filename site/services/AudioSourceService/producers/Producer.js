@@ -31,11 +31,19 @@ module.exports = ({ TrackList }) => class Producer {
         };
     }
 
+    static PROXY_RETRY_TIMES = 1;
+
     static _sources = [];
 
     static get sources() {
         return Producer._sources;
     }
+
+    set proxyPool(proxyPool) {
+        this._proxyPool = proxyPool;
+    }
+
+    _proxyPool = { getProxyList() { return null; } };
 
     constructor() { }
 
@@ -43,7 +51,7 @@ module.exports = ({ TrackList }) => class Producer {
         return new TrackList();
     }
 
-    async getStreamUrls() {
+    async getStreamUrls(id, source) {
         return [];
     }
 
@@ -59,7 +67,7 @@ module.exports = ({ TrackList }) => class Producer {
         return null;
     }
 
-    async getAlternativeTracks() {
+    async getAlternativeTracks(track, source, { limit } = {}) {
         return [];
     }
 };

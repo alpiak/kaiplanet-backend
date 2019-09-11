@@ -23,8 +23,8 @@ module.exports = () => class {
         return this._source;
     }
 
-    get url() {
-        return this._url;
+    get streamUrl() {
+        return this._streamUrl;
     }
 
     _id;
@@ -33,15 +33,15 @@ module.exports = () => class {
     _artists;
     _picture;
     _source;
-    _url;
+    _streamUrl;
 
-    constructor(id, name, duration, artists, picture, source, url) {
+    constructor(id, name, duration, artists, picture, source, streamUrl) {
         this._id = id;
         this._name = name;
         this._duration = duration;
         this._artists = artists;
         this._picture = picture;
         this._source = source;
-        this._url = url;
+        this._streamUrl = streamUrl;
     }
 };

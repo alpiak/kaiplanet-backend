@@ -11,7 +11,7 @@ module.exports = {
         neteaseCloudMusicApi: {
             instances: [
                 {
-                    host: "kaiplanet.net",
+                    host: "localhost",
                     port: 3000,
                     protocol: "http",
                 }
@@ -31,8 +31,8 @@ module.exports = {
         kugouMusicApi: {
             instances: [
                 {
-                    host: "kaiplanet.net",
-                    port: 4000,
+                    host: "localhost",
+                    port: 3001,
                     protocol: "http"
                 }
             ]

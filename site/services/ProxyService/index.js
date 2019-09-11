@@ -20,7 +20,7 @@ module.exports = (env = "development") => {
     return class ProxyService {
         static PERIOD_TO_REFRESH_PROXY_LIST = config.periodToRefreshProxyList;
         static PROXY_NUM_THRESHOLD = 64;
-        static FAILURE_TIMES_TO_REMOVE_PROXY = 3;
+        static FAILURE_TIMES_TO_REMOVE_PROXY = 2;
 
         static async test(proxy, testCase) {
             if (!testCase.areas.has(proxy.area)) {
@@ -221,7 +221,7 @@ module.exports = (env = "development") => {
                     if (testResults.filter((testResult) => !testResult).length) {
                         proxy.failureTimes++;
 
-                        if (proxy.failureTimes > ProxyService.FAILURE_TIMES_TO_REMOVE_PROXY) {
+                        if (proxy.failureTimes >= ProxyService.FAILURE_TIMES_TO_REMOVE_PROXY) {
                             proxies.delete(proxy);
                         }
 
@@ -231,7 +231,7 @@ module.exports = (env = "development") => {
                     if (testResults.filter((testResult) => testResult.status !== Status.SUCCESS).length) {
                         proxy.failureTimes++;
 
-                        if (proxy.failureTimes > ProxyService.FAILURE_TIMES_TO_REMOVE_PROXY) {
+                        if (proxy.failureTimes >= ProxyService.FAILURE_TIMES_TO_REMOVE_PROXY) {
                             proxies.delete(proxy);
                         }
 

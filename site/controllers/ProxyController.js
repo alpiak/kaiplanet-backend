@@ -10,11 +10,13 @@ const zlib = require('zlib');
 
 const _proxy = require('http-proxy-middleware');
 
-const ProxyService = require("../services/ProxyService")(process.env.NODE_ENV);
+module.exports = () => class {
+    set proxyService(proxyService) {
+        this._proxyService = proxyService;
+    }
 
-const proxyService = new ProxyService();
+    _proxyService;
 
-module.exports = {
     registerProxyRoutes(app) {
         const REF_REGEXP = '(?:href|src|action)="\\s*((?:\\S|\\s)+?)"';
         const ONLY_PATH_REGEXP = '(?:^\\/$|^\\/[^\\/]|^[^\\/]*$)';
@@ -311,7 +313,7 @@ module.exports = {
             }
 
         });
-    },
+    }
 
     registerRoutes(app) {
         app.use('/kaiplanet', _proxy({
@@ -460,8 +462,8 @@ module.exports = {
             })(req, res);
         });
 
-        app.post("/proxy/list", this.getProxyList);
-    },
+        app.post("/proxy/list", (req, res) => this.getProxyList(req, res));
+    }
 
 
     /**
@@ -475,7 +477,7 @@ module.exports = {
         try {
             res.json({
                 code: 1,
-                data: proxyService.getProxyList(req.body.area || "GLOBAL", req.body.protocol || "all", req.body.sortBy || "responseTime"),
+                data: this._proxyService.getProxyList(req.body.area || "GLOBAL", req.body.protocol || "all", req.body.sortBy || "responseTime"),
             });
         } catch (e) {
             res.json({

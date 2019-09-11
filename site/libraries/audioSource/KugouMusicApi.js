@@ -17,12 +17,12 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    search(keywords) {
-        return this.request("/search", { keywords }, ["data", "lists"]);
+    search(keywords, { proxy } = {}) {
+        return this.request("/search", { keywords, proxy }, ["data", "lists"]);
     }
 
-    getSongUrl(hash) {
-        return this.request("/songurl", { hash }, ["data"]);
+    getSongUrl(hash, { proxy } = {}) {
+        return this.request("/songurl", { hash, proxy }, ["data"]);
     }
 
     async request(path, data, dataPath = []) {
