@@ -1,5 +1,7 @@
-const http = require('http'),
-    https = require('https');
+const http = require("http");
+const https = require("https");
+
+const ProxyAgent = require("proxy-agent");
 
 const request = (options) => new Promise((resolve, reject) => {
     const client = (() => {
@@ -45,22 +47,36 @@ const request = (options) => new Promise((resolve, reject) => {
         return "";
     })(options);
 
-    const queries = Object.entries(options.queries)
-        .filter((entry) => entry.reduce((total, el) => total && el, true))
-        .map((entry) => entry.join("="))
-        .join("&");
+    const queries = (() => {
+        if (typeof options.queries === "object") {
+            Object.entries(options.queries)
+                .filter((entry) => entry.reduce((total, el) => total && el, true))
+                .map((entry) => entry.join("="))
+                .join("&");
+        }
 
-    const req = client.request({
+        return "";
+    })();
+
+    const requestOptions = {
         ...options,
         path: (() => {
             if (options.method.toUpperCase() === "GET") {
                 return options.path + "?" + encodeURI([data, queries].filter((queryStr) => queryStr).join("&"));
+            } else if (queries) {
+                return options.path + "?" + encodeURI(queries);
             }
 
-            return options.path + "?" + encodeURI(queries);
+            return options.path;
         })(),
         protocol: options.protocol + ":",
-    }, (res) => {
+    };
+
+    if (options.proxy) {
+        requestOptions.agent = new ProxyAgent(options.proxy);
+    }
+
+    const req = client.request(requestOptions, (res) => {
         res.setEncoding('utf8');
 
         let data = '';

@@ -1,4 +1,4 @@
-const { request } = require('../utils');
+const { request } = require("../utils");
 
 module.exports =  () => class {
     _host;
@@ -17,15 +17,11 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    search(keywords, { proxy } = {}) {
-        return this.request("/search", { keywords, proxy }, ["data", "lists"]);
+    searchSong(keyword, { page, pagesize, proxy } = {}) {
+        return this.request("/api/v3/search/song", { keyword, page, pagesize, format: "json", showtype: "1" }, ["data", "info"], { proxy });
     }
 
-    getSongUrl(hash, { proxy } = {}) {
-        return this.request("/songurl", { hash, proxy }, ["data"]);
-    }
-
-    async request(path, data, dataPath = []) {
+    async request(path, data, dataPath = [], { proxy } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -33,6 +29,7 @@ module.exports =  () => class {
             path: path,
             method: "GET",
             data,
+            proxy,
         });
 
         if (res.status === 1) {

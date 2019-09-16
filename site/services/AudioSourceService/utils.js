@@ -1,4 +1,8 @@
 const retry = async (callback, retryTimes) => {
+    if (retryTimes <= 0) {
+        throw new Error("Invalid retry times provided.");
+    }
+
     let err;
     let i = 0;
 

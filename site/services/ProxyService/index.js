@@ -19,7 +19,7 @@ module.exports = (env = "development") => {
 
     return class ProxyService {
         static PERIOD_TO_REFRESH_PROXY_LIST = config.periodToRefreshProxyList;
-        static PROXY_NUM_THRESHOLD = 64;
+        static MAX_PROXY_NUM = 64;
         static FAILURE_TIMES_TO_REMOVE_PROXY = 2;
 
         static async test(proxy, testCase) {
@@ -145,7 +145,7 @@ module.exports = (env = "development") => {
             for (const [area, proxies] of this._proxies.entries()) {
                 await this._testExistingProxiesAndRemoveBrokenOnes(proxies);
 
-                if (proxies.size >= ProxyService.PROXY_NUM_THRESHOLD) {
+                if (proxies.size >= ProxyService.MAX_PROXY_NUM) {
                     continue;
                 }
 
@@ -159,14 +159,14 @@ module.exports = (env = "development") => {
 
                         if (instances && instances.length) {
                             for (const instance of instances) {
-                                if (proxies.size >= ProxyService.PROXY_NUM_THRESHOLD) {
+                                if (proxies.size >= ProxyService.MAX_PROXY_NUM) {
                                     continue;
                                 }
 
                                 const producer = new Producer(instance.host, instance.port, instance.protocol, instance.path);
 
                                 try {
-                                    const fetchedProxies = await producer.fetchProxyList(ProxyService.PROXY_NUM_THRESHOLD - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
+                                    const fetchedProxies = await producer.fetchProxyList(ProxyService.MAX_PROXY_NUM - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
 
                                     await this._testAndAddNewProxies(fetchedProxies);
                                 } catch (e) {
@@ -175,14 +175,14 @@ module.exports = (env = "development") => {
                             }
                         }
                     } else {
-                        if (proxies.size >= ProxyService.PROXY_NUM_THRESHOLD) {
+                        if (proxies.size >= ProxyService.MAX_PROXY_NUM) {
                             continue;
                         }
 
                         const producer = new Producer();
 
                         try {
-                            const fetchedProxies = await producer.fetchProxyList(ProxyService.PROXY_NUM_THRESHOLD - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
+                            const fetchedProxies = await producer.fetchProxyList(ProxyService.MAX_PROXY_NUM - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
 
                             await this._testAndAddNewProxies(fetchedProxies);
                         } catch (e) {
@@ -253,7 +253,7 @@ module.exports = (env = "development") => {
 
                     const existingProxies = this._proxies.get(newProxy.area);
 
-                    if (existingProxies.size > ProxyService.PROXY_NUM_THRESHOLD) {
+                    if (existingProxies.size > ProxyService.MAX_PROXY_NUM) {
                         continue;
                     }
 

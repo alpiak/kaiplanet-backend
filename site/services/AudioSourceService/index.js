@@ -17,9 +17,10 @@ module.exports = (env = "development") => {
     const NodeSoundCloudProducer = require("./producers/NodeSoundCloudProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const HearthisProducer = require("./producers/HearthisProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const KugouMusicApiProducer = require("./producers/KugouMusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
+    const KuGouMobileCDNProducer = require("./producers/KuGouMobileCDNProducer")({ Artist, Track, TrackList, Source, Producer, config });
 
     return class AudioSourceService {
-        static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer];
+        static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, NodeSoundCloudProducer, HearthisProducer, KuGouMobileCDNProducer];
 
         static getSources() {
             return Source.values().map((source) => ({
