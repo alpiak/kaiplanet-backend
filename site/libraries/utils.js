@@ -45,14 +45,19 @@ const request = (options) => new Promise((resolve, reject) => {
         return "";
     })(options);
 
+    const queries = Object.entries(options.queries)
+        .filter((entry) => entry.reduce((total, el) => total && el, true))
+        .map((entry) => entry.join("="))
+        .join("&");
+
     const req = client.request({
         ...options,
         path: (() => {
             if (options.method.toUpperCase() === "GET") {
-                return options.path + "?" + encodeURI(data);
+                return options.path + "?" + encodeURI([data, queries].filter((queryStr) => queryStr).join("&"));
             }
 
-            return options.path;
+            return options.path + "?" + encodeURI(queries);
         })(),
         protocol: options.protocol + ":",
     }, (res) => {

@@ -5,17 +5,17 @@ module.exports = {
                 {
                     host: "music.niubishanshan.top",
                     protocol: "https",
-                }
-            ]
+                },
+            ],
         },
         neteaseCloudMusicApi: {
             instances: [
                 {
                     host: "localhost",
-                    port: 3000,
+                    port: 3001,
                     protocol: "http",
-                }
-            ]
+                },
+            ],
         },
         nodeSoundCloud: {
             clientId: "4bfb6af6b3fc1982ae613dbcb6f0d1d5",
@@ -25,17 +25,17 @@ module.exports = {
                 {
                     host: "api-v2.hearthis.at",
                     protocol: "https",
-                }
-            ]
+                },
+            ],
         },
         kugouMusicApi: {
             instances: [
                 {
                     host: "localhost",
-                    port: 3001,
-                    protocol: "http"
-                }
-            ]
+                    port: 3002,
+                    protocol: "http",
+                },
+            ],
         },
-    }
+    },
 };

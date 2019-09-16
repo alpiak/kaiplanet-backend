@@ -71,7 +71,7 @@ module.exports = (env = "development") => {
 
             const trackLists = await Promise.all(sources.map((source) => source.search(keywords, {
                 limit,
-                producerRating
+                producerRating,
             })));
             const trackListLength = trackLists.reduce((total, trackList) => total + trackList.length, 0);
 
@@ -101,7 +101,7 @@ module.exports = (env = "development") => {
             }
 
             return stringSimilarity.findBestMatch(keywords, tracks.map(({name}) => name)).ratings
-                .map(({rating}, i) => {
+                .map(({ rating }, i) => {
                     const track = tracks[i];
 
                     const artistsSimilarity = track.artists

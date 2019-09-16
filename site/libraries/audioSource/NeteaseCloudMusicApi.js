@@ -17,42 +17,43 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    searchSongs(keywords, { limit, offset }) {
-        return this.request("/search", { keywords, limit, offset }, ["result", "songs"]);
+    searchSongs(keywords, { limit, offset, proxy } = {}) {
+        return this.request("/search", { keywords, limit, offset }, ["result", "songs"], { proxy });
     }
 
-    getSongDetail(ids) {
-        return this.request("/song/detail", {ids: ids.join(",") }, ["songs"]);
+    getSongDetail(ids, { proxy } = {}) {
+        return this.request("/song/detail", {ids: ids.join(",") }, ["songs"], { proxy });
     }
 
-    getSongURL(id) {
-        return this.request("/song/url", { id }, ["data"]);
+    getSongURL(id, { proxy } = {}) {
+        return this.request("/song/url", { id }, ["data"], { proxy });
     }
 
-    getToplist() {
-        return this.request("/toplist", null, ["list"]);
+    getToplist({ proxy } = {}) {
+        return this.request("/toplist", null, ["list"], { proxy });
     }
 
-    searchPlaylist(keywords, { limit, offset }) {
-        return this.request("/search", { keywords, type: 1000, limit, offset }, ["result", "playlists"]);
+    searchPlaylist(keywords, { limit, offset, proxy } = {}) {
+        return this.request("/search", { keywords, type: 1000, limit, offset }, ["result", "playlists"], { proxy });
     }
 
-    getPlaylistDetail(id) {
-        return this.request("/playlist/detail", { id }, ["playlist", "tracks"]);
+    getPlaylistDetail(id, { proxy } = {}) {
+        return this.request("/playlist/detail", { id }, ["playlist", "tracks"], { proxy });
     }
 
-    getSimiSong(id) {
-        return this.request("/simi/song", { id }, ["songs"]);
+    getSimiSong(id, { proxy } = {}) {
+        return this.request("/simi/song", { id }, ["songs"], { proxy });
     }
 
-    async request(path, data, dataPath = []) {
+    async request(path, data, dataPath = [], { proxy } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
             port: this._port,
             path: path,
             method: "GET",
-            data: data
+            data: data,
+            queries: { proxy },
         });
 
         if (res.code === 200) {

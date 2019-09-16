@@ -91,7 +91,7 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {String} source
      */
     async getStreamUrl(req, res) {
-        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getStreamUrls(reqBody.id, reqBody.source)));
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getStreamUrls(reqBody.id, reqBody.source.trim())));
     }
 
     /**
@@ -101,7 +101,7 @@ module.exports = ({ AudioSourceService }) => class {
      */
     async getLists(req, res) {
         res.json(await generateResponse(((reqBody) => {
-            if ((!Array.isArray(reqBody) && !reqBody.source) || (Array.isArray(reqBody) && !reqBody.length)) {
+            if ((!Array.isArray(reqBody) && !reqBody.source.trim()) || (Array.isArray(reqBody) && !reqBody.length)) {
                 return Source.values().map((source) => ({ source: source.id }))
             }
 
@@ -111,7 +111,7 @@ module.exports = ({ AudioSourceService }) => class {
                 throw new Error("Source not provided or doesn't exist.");
             }
 
-            return (await this._audioSourceService.getLists([reqBody.source]))[0];
+            return (await this._audioSourceService.getLists([reqBody.source.trim()]))[0];
         }));
     }
 

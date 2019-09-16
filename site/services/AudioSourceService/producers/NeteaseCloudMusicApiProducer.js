@@ -1,3 +1,5 @@
+const { retry } = require("../utils");
+
 const NeteaseCloudMusicApi = require("../../../libraries/audioSource/NeteaseCloudMusicApi")();
 
 module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) => {
@@ -51,11 +53,32 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }
 
         async search(keywords, source, { limit } = {}) {
+            const proxyPool = this._proxyPool;
+
             const tracks = (await (async () => {
                 try {
-                    return await this._neteaseCloudMusicApi.searchSongs(keywords, { limit });
+                    return await retry(async () => {
+                        try {
+                            return await this._neteaseCloudMusicApi.searchSongs(keywords, {
+                                limit,
+                                proxy: proxyPool.getRandomProxy("CN"),
+                            });
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
+                    }, proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
                 } catch (e) {
-                    throw e;
+                    console.log(e);
+
+                    try {
+                        return await this._neteaseCloudMusicApi.searchSongs(keywords, { limit });
+                    } catch (e) {
+                        console.log(e);
+
+                        throw e;
+                    }
                 }
             })()) || [];
 
@@ -65,7 +88,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 async _getPicture(track) {
                     try {
                         return await getPicture(track);
-                    } catch (e) {
+                    } catch {
                         return super._getPicture(track);
                     }
                 };
@@ -74,8 +97,30 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getStreamUrls(id, source) {
             try {
-                return (await this._neteaseCloudMusicApi.getSongURL(id)).map((track) => track.url || null);
+                try {
+                    return await retry(async () => {
+                        try {
+                            return (await this._neteaseCloudMusicApi.getSongURL(id, { proxy: this._proxyPool.getRandomProxy("CN") })).map((track) => track.url || null);
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
+                    }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+                } catch (e) {
+                    console.log(e);
+
+                    try {
+                        return (await this._neteaseCloudMusicApi.getSongURL(id)).map((track) => track.url || null);
+                    } catch (e) {
+                        console.log(e);
+
+                        throw e;
+                    }
+                }
             } catch (e) {
+                console.log(e);
+
                 return [];
             }
         }
@@ -86,9 +131,25 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             const tracks = await (async (track) => {
                 if (track) {
                     try {
-                        return (await this._neteaseCloudMusicApi.getSimiSong(track.id)) || null;
+                        return await retry(async () => {
+                            try {
+                                return (await this._neteaseCloudMusicApi.getSimiSong(track.id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                            } catch (e) {
+                                console.log(e);
+
+                                throw e;
+                            }
+                        }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
                     } catch (e) {
-                        throw e;
+                        console.log(e);
+
+                        try {
+                            return (await this._neteaseCloudMusicApi.getSimiSong(track.id)) || null;
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
                     }
                 } else {
                     return null;
@@ -116,15 +177,54 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getLists(source) {
             try {
-                return (await this._neteaseCloudMusicApi.getToplist()).map(({ id, name }) => new List(id, name, source));
+                try {
+                    return await retry(async () => {
+                        try {
+                            return (await this._neteaseCloudMusicApi.getToplist({ proxy: this._proxyPool.getRandomProxy("CN") })).map(({ id, name }) => new List(id, name, source));
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
+                    }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+                } catch (e) {
+                    console.log(e);
+
+                    try {
+                        return (await this._neteaseCloudMusicApi.getToplist()).map(({ id, name }) => new List(id, name, source));
+                    } catch (e) {
+                        console.log(e);
+
+                        throw e;
+                    }
+                }
             } catch {
                 return (await Promise.all(NeteaseCloudMusicApiProducer._listNames.get(source)
                     .map(async (listName) => {
-                        return (await (() => {
+                        return (await (async () => {
                             try {
-                                return this._neteaseCloudMusicApi.searchPlaylist(listName, { limit: 0 });
+                                return await retry(async () => {
+                                    try {
+                                        return await this._neteaseCloudMusicApi.searchPlaylist(listName, {
+                                            limit: 0,
+                                            proxy: proxyPool.getRandomProxy("CN"),
+                                        });
+                                    } catch (e) {
+                                        console.log(e);
+
+                                        throw e;
+                                    }
+                                }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
                             } catch (e) {
-                                throw e;
+                                console.log(e);
+
+                                try {
+                                    return await this._neteaseCloudMusicApi.searchPlaylist(listName, { limit: 0 });
+                                } catch (e) {
+                                    console.log(e);
+
+                                    throw e;
+                                }
                             }
                         })())[0] || null;
                     })))
@@ -140,9 +240,25 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         async getList(id, source, { limit, offset } = {}) {
             const tracks = await (async () => {
                 try {
-                    return (await this._neteaseCloudMusicApi.getPlaylistDetail(id)) || null;
+                    return await retry(async () => {
+                        try {
+                            return (await this._neteaseCloudMusicApi.getPlaylistDetail(id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
+                    }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
                 } catch (e) {
-                    throw e;
+                    console.log(e);
+
+                    try {
+                        return (await this._neteaseCloudMusicApi.getPlaylistDetail(id)) || null;
+                    } catch (e) {
+                        console.log(e);
+
+                        throw e;
+                    }
                 }
             })();
 
@@ -159,11 +275,33 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async _getPicture(track) {
             try {
-                const details = (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)]))[0];
+                return await retry(async () => {
+                    const details = await (async () => {
+                        try {
+                            return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)], { proxy: this._proxyPool.getRandomProxy("CN")}))[0];
+                        } catch (e) {
+                            console.log(e);
+
+                            throw e;
+                        }
+                    })();
+
+                    return (details && details.al && details.al.picUrl) || null;
+                }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+            } catch (e) {
+                console.log(e);
+
+                const details = await (async () => {
+                    try {
+                        return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)]))[0];
+                    } catch (e) {
+                        console.log(e);
+
+                        throw e;
+                    }
+                })();
 
                 return (details && details.al && details.al.picUrl) || null;
-            } catch (e) {
-                throw e;
             }
         }
     }

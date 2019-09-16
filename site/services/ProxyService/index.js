@@ -141,26 +141,6 @@ module.exports = (env = "development") => {
             }).map((proxy) => `${proxy.protocol}://${proxy.host}:${proxy.port}`);
         }
 
-        _getProxyList(area = Area.GLOBAL, protocol = "all", sortBy = "responseTime") {
-            return [...this._proxies.get(area)].filter((proxy) => {
-                if (protocol === "http" || protocol === "https") {
-                    return proxy.protocol === protocol;
-                }
-
-                return true;
-            }).sort((a, b) => {
-                if (sortBy === "responseTime") {
-                    return a.historyResponseTime.reduce((total, responseTime) => total + responseTime) / a.historyResponseTime.length
-                        - b.historyResponseTime.reduce((total, responseTime) => total + responseTime) / a.historyResponseTime.length;
-                } else if (sortBy === "speed") {
-                    return a.historySpeed.reduce((total, responseTime) => total + responseTime) / a.historyResponseTime.length
-                        - b.historySpeed.reduce((total, responseTime) => total + responseTime) / a.historyResponseTime.length;
-                }
-
-                return 0;
-            });
-        }
-
         async _refreshProxyList() {
             for (const [area, proxies] of this._proxies.entries()) {
                 await this._testExistingProxiesAndRemoveBrokenOnes(proxies);
@@ -179,9 +159,11 @@ module.exports = (env = "development") => {
 
                         if (instances && instances.length) {
                             for (const instance of instances) {
-                                const producer = new Producer(instance.host, instance.port, instance.protocol, instance.path);
+                                if (proxies.size >= ProxyService.PROXY_NUM_THRESHOLD) {
+                                    continue;
+                                }
 
-                                const proxies = this._getProxyList(area);
+                                const producer = new Producer(instance.host, instance.port, instance.protocol, instance.path);
 
                                 try {
                                     const fetchedProxies = await producer.fetchProxyList(ProxyService.PROXY_NUM_THRESHOLD - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
@@ -193,9 +175,11 @@ module.exports = (env = "development") => {
                             }
                         }
                     } else {
-                        const producer = new Producer();
+                        if (proxies.size >= ProxyService.PROXY_NUM_THRESHOLD) {
+                            continue;
+                        }
 
-                        const proxies = this._getProxyList(area);
+                        const producer = new Producer();
 
                         try {
                             const fetchedProxies = await producer.fetchProxyList(ProxyService.PROXY_NUM_THRESHOLD - this._proxies.get(area).size, area, proxies[Math.floor(proxies.length * Math.random())]);
