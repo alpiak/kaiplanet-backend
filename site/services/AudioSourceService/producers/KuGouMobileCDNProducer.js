@@ -14,11 +14,11 @@ module.exports = ({ Artist, Track, TrackList, Source, Producer, config }) => cla
     static _sources = [Source.kugou];
     static _instances = config.producers.kuGouMobileCDN.instances.map((instance) => new Producer.Instance(instance.host, instance.port, instance.protocol));
 
-    _kuGou;
+    _kuGouMobileCDN;
 
     constructor(host, port, protocol) {
         super(host, port, protocol);
-        this._kuGou = new KuGouMobileCDN(host, port, protocol);
+        this._kuGouMobileCDN = new KuGouMobileCDN(host, port, protocol);
     }
 
     async search(keywords, source, { limit } = {}) {
@@ -28,7 +28,7 @@ module.exports = ({ Artist, Track, TrackList, Source, Producer, config }) => cla
             try {
                 return await retry(async () => {
                     try {
-                        return await this._kuGou.searchSong(keywords, {
+                        return await this._kuGouMobileCDN.searchSong(keywords, {
                             pagesize: limit,
                             proxy: proxyPool.getRandomProxy("CN"),
                         });
@@ -42,7 +42,7 @@ module.exports = ({ Artist, Track, TrackList, Source, Producer, config }) => cla
                 console.log(e);
 
                 try {
-                    return await this._kuGou.searchSong(keywords, { pagesize: limit });
+                    return await this._kuGouMobileCDN.searchSong(keywords, { pagesize: limit });
                 } catch (e) {
                     console.log(e);
 

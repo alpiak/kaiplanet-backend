@@ -111,7 +111,11 @@ module.exports = () => class Source {
 
         for (const producer of sortedProducers) {
             try {
-                return (await producer.search(keywords, this, { limit })) || null;
+                const tracks = await producer.search(keywords, this, { limit });
+
+                if (tracks && tracks.length) {
+                    return tracks;
+                }
             } catch (e) {
                 err = e;
             }
@@ -146,9 +150,9 @@ module.exports = () => class Source {
             try {
                 const lists = await producer.getLists(this);
 
-                return lists || null;
-
-                return null;
+                if (lists && lists.length) {
+                    return lists;
+                }
             } catch (e) {
                 err = e;
             }
@@ -170,7 +174,9 @@ module.exports = () => class Source {
             try {
                 const list = await producer.getList(listId, this, { limit, offset });
 
-                return list || null;
+                if (list) {
+                    return list;
+                }
             } catch (e) {
                 err = e;
             }

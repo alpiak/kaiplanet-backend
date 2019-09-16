@@ -37,6 +37,14 @@ module.exports = {
                 },
             ],
         },
+        kuGouMobile: {
+            instances: [
+                {
+                    host: "m.kugou.com",
+                    protocol: "http",
+                },
+            ],
+        },
         kuGouMobileCDN: {
             instances: [
                 {

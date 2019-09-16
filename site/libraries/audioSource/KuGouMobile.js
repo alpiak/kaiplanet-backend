@@ -17,8 +17,12 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    searchSong(keyword, { page, pagesize, proxy } = {}) {
-        return this.request("/api/v3/search/song", { keyword, page, pagesize, format: "json", showtype: "1" }, ["data", "info"], { proxy });
+    getRankList({ proxy } = {}) {
+        return this.request("/rank/list", { json: "true" }, ["rank", "list"], { proxy });
+    }
+
+    getRankInfo(rankId, { page, proxy } = {}) {
+        return this.request("/rank/info/", { rankid: rankId, page, json: "true" }, ["songs", "list"], { proxy });
     }
 
     async request(path, data, dataPath = [], { proxy } = {}) {
@@ -32,7 +36,7 @@ module.exports =  () => class {
             proxy,
         });
 
-        if (res.status === 1) {
+        if (res && res[dataPath[0]]) {
             let data = res;
 
             if (dataPath.length) {
@@ -46,6 +50,6 @@ module.exports =  () => class {
             return data || [];
         }
 
-        throw new Error(res.error);
+        throw new Error(JSON.stringify(res));
     }
 };
