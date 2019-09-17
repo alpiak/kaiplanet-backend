@@ -63,7 +63,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             try {
                 const url = (await this._hearthis.getTrack(id)).stream_url;
 
-                return typeof url === "string" ? url.replace(/^https/, 'http') : null;
+                return typeof url === "string" ? url.replace(/^https/, "http") : null;
             } catch (e) {
                 return [];
             }
@@ -91,6 +91,24 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getAlternativeTracks(track, source, { limit } = {}) {
             return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+        }
+
+        async getTrack(id, source) {
+            const track = await (async () => {
+                try {
+                    return await this._hearthis.getTrack(id);
+                } catch (e) {
+                    console.log(e);
+
+                    throw e;
+                }
+            })();
+
+            if (track) {
+                return new Track(String(track.id), track.title, +track.duration * 1000, [new Artist(track.user.username)], track.artwork_url, source, typeof track.stream_url === "string" ? track.stream_url.replace(/^https/, "http") : null);
+            }
+
+            return null;
         }
     }
 };

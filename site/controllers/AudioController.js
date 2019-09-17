@@ -43,6 +43,10 @@ module.exports = ({ AudioSourceService }) => class {
     _proxyService;
 
     registerRoutes(app) {
+        app.post('/audio/track', cache('5 minutes', () => true, {
+            appendKey: (req) => JSON.stringify(req.body)
+        }), (req, res) => this.getTrack(req, res));
+
         app.post('/audio/search', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
         }), (req, res) => this.search(req, res));
@@ -66,6 +70,16 @@ module.exports = ({ AudioSourceService }) => class {
         app.post('/audio/alttracks', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
         }), (req, res) => this.getAlternativeTracks(req, res));
+    }
+
+    /**
+     * @api {post} /audio/track
+     *
+     * @apiParam {String} id The ID of the track
+     * @apiParam {String} source The source ID of the track
+     */
+    async getTrack(req, res) {
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getTrack(reqBody.id, reqBody.source)));
     }
 
     /**

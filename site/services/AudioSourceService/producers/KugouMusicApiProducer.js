@@ -1,3 +1,5 @@
+const { retry } = require("../utils");
+
 const KugouMusicApi = require("../../../libraries/audioSource/KugouMusicApi")();
 
 module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) => class KugouMusicApiProducer extends Producer {
@@ -51,6 +53,8 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                             try {
                                 return await kugouMusicApi.getSongUrl(track.FileHash, { proxy: proxyPool.getRandomProxy("CN") });
                             } catch (e) {
+                                console.log(e);
+
                                 return null;
                             }
                         })();
@@ -58,7 +62,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                         const picture = (details && details.img) || undefined;
                         const streamUrl = (details && details.play_url) || undefined;
 
-                        return new Track(track.FileHash, track.SongName, +track.SQDuration * 1000, track.SingerName.split(/(?:、|,)/).map((singerName) => new Artist(singerName.trim())), picture, source, streamUrl);
+                        return new Track(track.FileHash, track.SongName, +track.SQDuration * 1000, track.SingerName.split(/(?:、|,)/).map((singerName) => new Artist(singerName.trim())), picture, source, streamUrl && [streamUrl]);
                     }
                 }(tracks);
             } catch (e) {
@@ -83,5 +87,23 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
     async getAlternativeTracks(track, source, { limit } = {}) {
         return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+    }
+
+    async getTrack(id, source) {
+        const track = await retry(async () => {
+            try {
+                return await this._kugouMusicApi.getSongUrl(id, { proxy: this._proxyPool.getRandomProxy("CN") });
+            } catch (e) {
+                console.log(e);
+
+                throw e;
+            }
+        }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+
+        if (track) {
+            return new Track(track.hash, track.song_name, track.timelength, track.authors.map((author) => new Artist(author.author_name)), track.img, source, track.play_url || undefined);
+        }
+
+        return null;
     }
 };

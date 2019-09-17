@@ -64,7 +64,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getStreamUrls(id, source) {
             try {
-                const tracks = (await SC.get('/tracks', { ids: String(id) }));
+                const tracks = await SC.get('/tracks', { ids: String(id) });
 
                 return tracks && tracks.map((track) => track && track.stream_url && `${track.stream_url}?client_id=${SC.clientId}`).filter((url) => url);
             } catch (e) {
@@ -103,6 +103,24 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getAlternativeTracks(track, source, { limit } = {}) {
             return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+        }
+
+        async getTrack(id, source) {
+            const track = await (async () => {
+                try {
+                    return (await SC.get('/tracks', { ids: String(id) }))[0];
+                } catch (e) {
+                    console.log(e);
+
+                    throw e;
+                }
+            })();
+
+            if (track) {
+                return new Track(String(track.id), track.title, track.duration, [new Artist(track.user.username)], track.artwork_url || undefined, source, track.stream_url ? [`${track.stream_url}?client_id=${SC.clientId}`] : undefined);
+            }
+
+            return null;
         }
     }
 };

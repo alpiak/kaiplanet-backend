@@ -104,6 +104,30 @@ module.exports = () => class Source {
         this._name = name;
     }
 
+    async getTrack(id, { producerRating } = {}) {
+        const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
+
+        let err;
+
+        for (const producer of sortedProducers) {
+            try {
+                const track = await producer.getTrack(id, this);
+
+                if (track) {
+                    return track;
+                }
+            } catch (e) {
+                err = e;
+            }
+        }
+
+        if (err) {
+            throw err;
+        }
+
+        return null;
+    }
+
     async search(keywords, { limit, producerRating } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
@@ -229,8 +253,7 @@ module.exports = () => class Source {
         }
 
         if (err) {
-            // throw err;
-            return null;
+            throw err;
         }
 
         return null;

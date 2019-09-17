@@ -263,7 +263,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (tracks) {
-                return tracks.map((track) => new Track(track.id, track.name, track.dt, track.ar.map((artist) => new Artist(artist.name)), track.al && track.al.picUrl, source));
+                return tracks.map((track) => new Track(String(track.id), track.name, track.dt, track.ar.map((artist) => new Artist(artist.name)), track.al && track.al.picUrl, source));
             }
 
             return null;
@@ -271,6 +271,27 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         async getAlternativeTracks(track, source, { limit } = {}) {
             return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+        }
+
+        async getTrack(id, source) {
+            const track = await retry(async () => {
+                try {
+                    return (await this._neteaseCloudMusicApi.getSongDetail([String(id)], { proxy: this._proxyPool.getRandomProxy("CN")}))[0];
+                } catch (e) {
+                    console.log(e);
+
+                    throw e;
+                }
+            }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+
+            if (track) {
+                const streamUrls = await this.getStreamUrls(track.id, source);
+
+
+                return new Track(String(track.id), track.name, track.dt, track.ar.map((artist) => new Artist(artist.name)), (track.al && track.al.picUrl) || undefined, source, streamUrls && streamUrls.length ? streamUrls : undefined);
+            }
+
+            return null;
         }
 
         async _getPicture(track) {

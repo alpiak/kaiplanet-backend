@@ -62,6 +62,24 @@ module.exports = (env = "development") => {
             });
         }
 
+        async getTrack(id, sourceId, { producerRating } = {}) {
+            const track = await Source.fromId(sourceId).getTrack(id, { producerRating });
+
+            if (!track) {
+                return null;
+            }
+
+            return {
+                id: track.id,
+                name: track.name,
+                duration: track.duration,
+                artists: track.artists.map(artist => ({name: artist.name})),
+                picture: track.picture,
+                source: track.source.id,
+                streamUrl: track.streamUrl,
+            };
+        }
+
         async search(keywords, { sourceIds, limit = 20, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {

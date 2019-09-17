@@ -70,4 +70,8 @@ module.exports = ({ TrackList }) => class Producer {
     async getAlternativeTracks(track, source, { limit } = {}) {
         return [];
     }
+
+    async getTrack() {
+        return null;
+    }
 };

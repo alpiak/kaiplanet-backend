@@ -5,7 +5,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer }) => class
 
     static _sources = [Source.kaiPlanet];
 
-    async getStreamUrls(id, source) {
+    getStreamUrls(id, source) {
         try {
             return ["http://kaiplanet.net/demo.mp3"];
         } catch (e) {
@@ -13,11 +13,15 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer }) => class
         }
     }
 
-    async getLists(source) {
+    getLists(source) {
         return [new List("demo", "Demo", source)];
     }
 
-    async getList(id, source) {
+    getList(id, source) {
         return [new Track(0, "Demo", undefined, [new Artist("Unknown")], "http://kaiplanet.net/lighthouse.jpg", source)];
+    }
+
+    getTrack(id, source) {
+        return new Track(0, "Demo", undefined, [new Artist("Unknown")], "http://kaiplanet.net/lighthouse.jpg", source);
     }
 };
