@@ -18,7 +18,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 return null;
             }
 
-            const picture = await this._getPicture(track);
+            const picture = track.picture || await this._getPicture(track);
 
             return new Track(String(track.id), track.name, track.duration, track.artists.map((artist) => new Artist(artist.name)), picture, this._source);
         }
@@ -126,38 +126,57 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }
 
         async getRecommend(track, source) {
-            const matchedTrack = await (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit: 1 })).get(0);
-
-            const tracks = await (async (track) => {
+            const tracks = await (async () => {
                 if (track) {
-                    try {
-                        return await retry(async () => {
+                    const matchedTrack = await (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit: 1 })).get(0);
+
+                    return await (async (matchedTrack) => {
+                        if (matchedTrack) {
                             try {
-                                return (await this._neteaseCloudMusicApi.getSimiSong(track.id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                                return await retry(async () => {
+                                    try {
+                                        return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                                    } catch (e) {
+                                        console.log(e);
+
+                                        throw e;
+                                    }
+                                }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
                             } catch (e) {
                                 console.log(e);
 
-                                throw e;
+                                try {
+                                    return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id)) || null;
+                                } catch (e) {
+                                    console.log(e);
+
+                                    throw e;
+                                }
                             }
-                        }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
-                    } catch (e) {
-                        console.log(e);
-
-                        try {
-                            return (await this._neteaseCloudMusicApi.getSimiSong(track.id)) || null;
-                        } catch (e) {
-                            console.log(e);
-
-                            throw e;
+                        } else {
+                            return null;
                         }
-                    }
-                } else {
-                    return null;
+                    })(matchedTrack);
                 }
-            })(matchedTrack);
+
+                const lists = await this.getLists(source);
+                const randomList = lists[Math.floor(lists.length * Math.random())];
+
+                if (randomList) {
+                    return (await this.getList(randomList.id, source)).map((track) => ({
+                        id: track.id,
+                        name: track.name,
+                        duration: track.duration,
+                        artists: track.artists.map((artist) => ({ name: artist.name })),
+                        picture: track.picture,
+                    }));
+                }
+
+                return  null;
+            })();
 
             if (!tracks || !tracks.length) {
-                return null;
+                return await super.getRecommend();
             }
 
             const getPicture = (track) => this._getPicture(track);

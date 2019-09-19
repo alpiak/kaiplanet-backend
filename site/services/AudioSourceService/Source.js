@@ -221,7 +221,11 @@ module.exports = () => class Source {
 
             for (const producer of sortedProducers) {
                 try {
-                    return (await producer.getRecommend(track, this)) || null;
+                    const recommendedTrack = await producer.getRecommend(track, this);
+
+                    if (recommendedTrack) {
+                        return recommendedTrack;
+                    }
                 } catch (e) {
                     err = e;
                 }
@@ -232,6 +236,24 @@ module.exports = () => class Source {
             }
 
             return null;
+        }
+
+        let err;
+
+        for (const producer of sortedProducers) {
+            try {
+                const recommendedTrack = await producer.getRecommend(track, this);
+
+                if (recommendedTrack) {
+                    return recommendedTrack;
+                }
+            } catch (e) {
+                err = e;
+            }
+        }
+
+        if (err) {
+            throw err;
         }
 
         return null;

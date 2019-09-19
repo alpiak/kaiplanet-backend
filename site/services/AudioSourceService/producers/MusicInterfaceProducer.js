@@ -59,43 +59,49 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }
     }
 
-    // async getRecommend(track, source) {
-    //     const tracks = await (async () => {
-    //         const lists = await (() => {
-    //             try {
-    //                 return this._musicInterface.getToplists();
-    //             } catch (e) {
-    //                 throw e;
-    //             }
-    //         })();
-    //
-    //         if (lists && lists[0]) {
-    //             try {
-    //                 return (await this._musicInterface.getSongList(lists[0].id)) || null;
-    //             } catch (e) {
-    //                 throw e;
-    //             }
-    //         }
-    //
-    //         return null;
-    //     })();
-    //
-    //     if (!tracks || !tracks.length) {
-    //         return null;
-    //     }
-    //
-    //     const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
-    //
-    //     const picture = await (async () => {
-    //         try {
-    //             return await this._getPicture(randomTrack);
-    //         } catch (e) {
-    //             return null;
-    //         }
-    //     })();
-    //
-    //     return new Track(randomTrack.songMid, randomTrack.songName, null, randomTrack.singer.map((singer) => new Artist(singer.singerName)), picture, source);
-    // }
+    async getRecommend(track, source) {
+        if (!track) {
+            const tracks = await (async () => {
+                const lists = await (() => {
+                    try {
+                        return this._musicInterface.getToplists();
+                    } catch (e) {
+                        throw e;
+                    }
+                })();
+
+                if (lists && lists.length) {
+                    const randomList = lists[Math.floor(lists.length * Math.random())];
+
+                    try {
+                        return (await this._musicInterface.getSongList(randomList.id)) || null;
+                    } catch (e) {
+                        throw e;
+                    }
+                }
+
+                return null;
+            })();
+
+            if (!tracks || !tracks.length) {
+                return await super.getRecommend();
+            }
+
+            const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
+
+            const picture = await (async () => {
+                try {
+                    return await this._getPicture(randomTrack);
+                } catch (e) {
+                    return null;
+                }
+            })();
+
+            return new Track(randomTrack.songMid, randomTrack.songName, null, randomTrack.singer.map((singer) => new Artist(singer.singerName)), picture, source);
+        }
+
+        return await super.getRecommend();
+    }
 
     async getLists(source) {
         return (await this._musicInterface.getToplists()).map((list) => new List(list.id, list.title, source));

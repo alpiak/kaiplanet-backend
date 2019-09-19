@@ -188,11 +188,11 @@ module.exports = (env = "development") => {
             }));
         }
 
-        async getStreamUrls(id, sourceId, {sourceRating, producerRating} = {}) {
+        async getStreamUrls(id, sourceId, { sourceRating, producerRating } = {}) {
             return await Source.fromId(sourceId).getStreamUrls(id, {producerRating});
         }
 
-        async getRecommend(track, sourceIds, {sourceRating, producerRating} = {}) {
+        async getRecommend(track, sourceIds, { sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -200,6 +200,61 @@ module.exports = (env = "development") => {
 
                 return sourceIds.map((sourceId) => Source.fromId(sourceId));
             })(sourceIds);
+
+            if (!sourceRating) {
+                let failCount = 0;
+                let err;
+
+                const recommendedTrackPromise = Promise.race(sources.map(async (source) => {
+                    try {
+                        const recommendedTrack = await (async (track) => {
+                            if (track) {
+                                const { name, artists } = track;
+
+                                return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { producerRating }) || null;
+                            }
+
+                            return await source.getRecommend(null, { producerRating }) || null;
+                        })(track);
+
+                        if (recommendedTrack) {
+                            return {
+                                id: recommendedTrack.id,
+                                name: recommendedTrack.name,
+                                duration: recommendedTrack.duration,
+                                artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
+                                picture: recommendedTrack.picture,
+                                source: recommendedTrack.source.id,
+                                streamUrl: recommendedTrack.streamUrl,
+                            };
+                        }
+
+                        failCount++;
+
+                        if (failCount >= sources.length) {
+                            if (err) {
+                                throw err;
+                            }
+
+                            return null;
+                        }
+
+                        await recommendedTrackPromise;
+                    } catch (e) {
+                        failCount++;
+
+                        if (failCount >= sources.length) {
+                            throw e;
+                        }
+
+                        err = e;
+
+                        await recommendedTrackPromise;
+                    }
+                }));
+
+                return await recommendedTrackPromise;
+            }
 
             sources.sort(() => Math.random() - .5);
 
@@ -209,10 +264,10 @@ module.exports = (env = "development") => {
                         if (track) {
                             const { name, artists } = track;
 
-                                return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), {producerRating}) || null;
+                            return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { producerRating }) || null;
                         }
 
-                        return null;
+                        return await source.getRecommend(null, { producerRating }) || null;
                     })(track);
 
                     if (recommendedTrack) {
@@ -226,7 +281,9 @@ module.exports = (env = "development") => {
                             streamUrl: recommendedTrack.streamUrl,
                         };
                     }
-                } catch (e) { }
+                } catch (e) {
+                    console.log(e);
+                }
             }
 
             return null;

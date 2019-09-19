@@ -133,7 +133,7 @@ module.exports = ({ AudioSourceService }) => class {
      * @api {post} /audio/list
      *
      * @apiParam {String} id The list ID of the list
-     * @apiParam {String[]} source The source ID of the list
+     * @apiParam {String} source The source ID of the list
      * @apiParam {Number} [limit] Optional Max number of items returned
      * @apiParam {Number} [offset] Optional Offset to get items
      */
