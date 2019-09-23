@@ -5,9 +5,9 @@ module.exports = (env = "development") => {
 
     const Artist = require("./Artist")({ config });
     const Track = require("./Track")({ config });
-    const TrackList = require("./TrackList")({ config });
+    const TrackList = require("./TrackList")();
     const List = require("./List")({ Track, config });
-    const Source = require("./Source")();
+    const Source = require("./Source")({ TrackList });
     const Producer = require("./producers/Producer")({ TrackList });
 
     const KaiPlanetProducer = require("./producers/KaiPlanetProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
@@ -89,10 +89,17 @@ module.exports = (env = "development") => {
                 return sourceIds.map((sourceId) => Source.fromId(sourceId));
             })(sourceIds);
 
-            const trackLists = await Promise.all(sources.map((source) => source.search(keywords, {
-                limit,
-                producerRating,
-            })));
+            const trackLists = await Promise.all(sources.map((source) => (async () => {
+                try {
+                    return await source.search(keywords, {
+                        limit,
+                        producerRating,
+                    });
+                } catch {
+                    return new TrackList();
+                }
+            })()));
+
             const trackListLength = trackLists.reduce((total, trackList) => total + trackList.length, 0);
 
             limit = Math.min(limit, trackListLength);
@@ -100,11 +107,11 @@ module.exports = (env = "development") => {
             const trackPromises = [];
             const len = trackLists.length;
 
-            loop1:for (let i = 0; trackPromises.length < limit * len; i++) {
+            loop1:for (let i = 0; trackPromises.length < limit; i++) {
                 for (let j = 0; j < len; j++) {
                     const trackList = trackLists[j];
 
-                    if (trackPromises.length >= limit * len) {
+                    if (trackPromises.length >= limit) {
                         break loop1;
                     }
 
@@ -189,7 +196,13 @@ module.exports = (env = "development") => {
         }
 
         async getStreamUrls(id, sourceId, { sourceRating, producerRating } = {}) {
-            return await Source.fromId(sourceId).getStreamUrls(id, {producerRating});
+            const source = Source.fromId(sourceId);
+
+            if (source) {
+                return await source.getStreamUrls(id, { producerRating });
+            } else {
+                return null;
+            }
         }
 
         async getRecommend(track, sourceIds, { sourceRating, producerRating } = {}) {
@@ -289,19 +302,27 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, {limit = 10, offset, sourceIds, sourceRating, producerRating} = {}) {
+        async getAlternativeTracks(name, artistNames, { limit = 10, offset, sourceIds, exceptedSourceIds = [], sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
                 }
 
                 return sourceIds.map((sourceId) => Source.fromId(sourceId));
-            })(sourceIds);
+            })(sourceIds).filter((source) => !exceptedSourceIds.reduce((matched, exceptedSourceId) => matched || source.id === exceptedSourceId, false));
 
-            const tracks = (await Promise.all(sources.map((source) => source.getAlternativeTracks(new Track(undefined, name, undefined, artistNames.map(artistName => new Artist(artistName))), {
-                limit,
-                producerRating
-            }))))
+            const tracks = (await Promise.all(sources.map(async (source) => {
+                try {
+                    return await source.getAlternativeTracks(new Track(undefined, name, undefined, artistNames.map(artistName => new Artist(artistName))), {
+                        limit,
+                        producerRating,
+                    });
+                } catch (e) {
+                    console.log(e);
+
+                    return null;
+                }
+            })))
                 .filter((matchedTracks) => matchedTracks)
                 .flat();
 

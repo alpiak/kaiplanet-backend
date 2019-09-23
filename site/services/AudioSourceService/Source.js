@@ -1,4 +1,4 @@
-module.exports = () => class Source {
+module.exports = ({ TrackList }) => class Source {
     static get kaiPlanet() {
         return this._kaiPlanet;
     }
@@ -149,7 +149,7 @@ module.exports = () => class Source {
             throw err;
         }
 
-        return null;
+        return new TrackList();
     }
 
     async getStreamUrls(id, { producerRating } = {}) {
