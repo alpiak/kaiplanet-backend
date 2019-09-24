@@ -7,7 +7,7 @@ module.exports = (env = "development") => {
     const Track = require("./Track")({ config });
     const TrackList = require("./TrackList")();
     const List = require("./List")({ Track, config });
-    const Source = require("./Source")({ TrackList });
+    const Source = require("./Source")({ TrackList, config });
     const Producer = require("./producers/Producer")({ TrackList });
 
     const KaiPlanetProducer = require("./producers/KaiPlanetProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
@@ -26,7 +26,8 @@ module.exports = (env = "development") => {
         static getSources() {
             return Source.values().map((source) => ({
                 id: source.id,
-                name: source.name
+                name: source.name,
+                icons: source.icons,
             }));
         }
 

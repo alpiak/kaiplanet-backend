@@ -6,9 +6,6 @@ const apicache = require('apicache');
 
 const cache = apicache.middleware;
 
-const TrackList = require("../services/AudioSourceService/TrackList")();
-const Source = require("../services/AudioSourceService/Source")({ TrackList });
-
 const generateResponse = (reqBody, callback) => {
     const generate = async (query) => {
         try {
@@ -115,9 +112,9 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {String} source ID of the source to get lists from
      */
     async getLists(req, res) {
-        res.json(await generateResponse(((reqBody) => {
-            if ((!Array.isArray(reqBody) && !reqBody.source.trim()) || (Array.isArray(reqBody) && !reqBody.length)) {
-                return Source.values().map((source) => ({ source: source.id }))
+        res.json(await generateResponse(await (async (reqBody) => {
+            if ((!Array.isArray(reqBody) && (!reqBody.source || !reqBody.source.trim())) || (Array.isArray(reqBody) && !reqBody.length)) {
+                return (await AudioSourceService.getSources()).map((source) => ({ source: source.id }))
             }
 
             return reqBody;

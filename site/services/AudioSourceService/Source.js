@@ -1,4 +1,4 @@
-module.exports = ({ TrackList }) => class Source {
+module.exports = ({ TrackList, config }) => class Source {
     static get kaiPlanet() {
         return this._kaiPlanet;
     }
@@ -35,15 +35,60 @@ module.exports = ({ TrackList }) => class Source {
         return Source._hearthis;
     }
 
-    static _kaiPlanet = new Source("kaiplanet", "kaiplanet.net");
-    static _netEase = new Source("netease", "网易云音乐");
-    static _qq = new Source("qq", "QQ音乐");
-    static _soundCloud = new Source("soundcloud", "SoundCloud");
-    static _qianQian = new Source("qianqian", "千千音乐");
-    static _kugou = new Source("kugou", "酷狗音乐");
-    static _kuwo = new Source("kuwo", "酷我音乐");
-    static _migu = new Source("migu", "咪咕");
-    static _hearthis =  new Source("hearthis", "hearthis.at");
+    static _assetBaseUrl = config.assetBaseUrl;
+
+    static _kaiPlanet = new Source("kaiplanet", "kaiplanet.net", [
+        `/proxy//${Source._assetBaseUrl}/favicon.ico`,
+        `${Source._assetBaseUrl}/favicon.ico`,
+    ]);
+
+    static _netEase = new Source("netease", "网易云音乐", [
+        "/proxy/http://s1.music.126.net/style/favicon.ico",
+        `${Source._assetBaseUrl}/netease.ico`,
+        "http://s1.music.126.net/style/favicon.ico",
+    ]);
+
+    static _qq = new Source("qq", "QQ音乐", [
+        "/proxy/https://y.qq.com/favicon.ico",
+        `${Source._assetBaseUrl}/qq.ico`,
+        "https://y.qq.com/favicon.ico",
+    ]);
+
+    static _soundCloud = new Source("soundcloud", "SoundCloud", [
+        "/proxy/https://soundcloud.com/favicon.ico",
+        `${Source._assetBaseUrl}/soundcloud.ico`,
+        "https://soundcloud.com/favicon.ico",
+    ]);
+
+    static _qianQian = new Source("qianqian", "千千音乐", [
+        "/proxy/https://music.taihe.com/favicon.ico",
+        `${Source._assetBaseUrl}/qianqian.ico`,
+        "https://music.taihe.com/favicon.ico",
+    ]);
+
+    static _kugou = new Source("kugou", "酷狗音乐", [
+        "/proxy/https://www.kugou.com/favicon.ico",
+        `${Source._assetBaseUrl}/kugou.ico`,
+        "https://www.kugou.com/favicon.ico",
+    ]);
+
+    static _kuwo = new Source("kuwo", "酷我音乐", [
+        "/proxy/http://kuwo.cn/favicon.ico",
+        `${Source._assetBaseUrl}/kuwo.ico`,
+        "http://kuwo.cn/favicon.ico",
+    ]);
+
+    static _migu = new Source("migu", "咪咕", [
+        "/proxy/https://www.migu.cn/favicon.ico",
+        `${Source._assetBaseUrl}/migu.ico`,
+        "https://www.migu.cn/favicon.ico",
+    ]);
+
+    static _hearthis =  new Source("hearthis", "hearthis.at", [
+        "/proxy/https://hearthis.at/favicon.ico",
+        `${Source._assetBaseUrl}/hearthis.ico`,
+        "https://hearthis.at/favicon.ico",
+    ]);
 
     static fromId(id) {
         if (id === undefined || id === null) {
@@ -95,13 +140,22 @@ module.exports = ({ TrackList }) => class Source {
         return this._producers;
     };
 
+    get icons() {
+        return this._icons;
+    }
+
     _id;
     _name;
     _producers = [];
+    _icons = [];
 
-    constructor(id, name) {
+    constructor(id, name, icons) {
         this._id = id;
         this._name = name;
+
+        if (icons) {
+            this._icons = icons;
+        }
     }
 
     async getTrack(id, { producerRating } = {}) {

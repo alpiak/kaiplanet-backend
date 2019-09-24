@@ -54,4 +54,5 @@ module.exports = {
             ],
         },
     },
+    assetBaseUrl: "http://kaiplanet.net",
 };
