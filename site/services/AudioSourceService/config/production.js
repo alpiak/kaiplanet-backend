@@ -1,19 +1,24 @@
 module.exports = {
     producers: {
-        musicInterface: {
-            instances: [
-                {
-                    host: "music.niubishanshan.top",
-                    protocol: "https",
-                },
-            ],
-        },
         neteaseCloudMusicApi: {
             instances: [
                 {
                     host: "kaiplanet.net",
                     port: 3000,
                     protocol: "http",
+                },
+            ],
+        },
+        musicInterface: {
+            instances: [
+                {
+                    host: "kaiplanet.net",
+                    port: 3001,
+                    protocol: "http",
+                },
+                {
+                    host: "music.niubishanshan.top",
+                    protocol: "https",
                 },
             ],
         },
@@ -32,7 +37,7 @@ module.exports = {
             instances: [
                 {
                     host: "kaiplanet.net",
-                    port: 3001,
+                    port: 3002,
                     protocol: "http",
                 },
             ],

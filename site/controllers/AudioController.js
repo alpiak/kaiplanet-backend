@@ -171,11 +171,13 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {String[]} artists List of artist names
      * @apiParam {String[]} [sources] Optional Sources to search by
      * @apiParam {String[]} [exceptedSources] Optional Sources excepted for search
+     * @apiParam {Boolean} [exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only
      */
     async getAlternativeTracks(req, res) {
         res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, {
             sourceIds: reqBody.sources,
             exceptedSourceIds: reqBody.exceptedSources,
+            exactMatch: reqBody.exactMatch || false,
         })));
     }
 };

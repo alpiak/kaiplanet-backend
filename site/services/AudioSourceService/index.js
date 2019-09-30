@@ -303,7 +303,7 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, { limit = 10, offset, sourceIds, exceptedSourceIds = [], sourceRating, producerRating } = {}) {
+        async getAlternativeTracks(name, artistNames, { limit = 10, offset, sourceIds, exceptedSourceIds = [], exactMatch = false, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -339,6 +339,12 @@ module.exports = (env = "development") => {
                         .map((artist) => stringSimilarity.findBestMatch(artist.name, artistNames).bestMatch.rating)
                         .reduce((total, rating) => total + rating, 0) / track.artists.length;
 
+                    const similarity = rating * .5 + artistsSimilarity * .5;
+
+                    if (exactMatch && similarity < 1) {
+                        return null;
+                    }
+
                     return {
                         id: track.id,
                         name: track.name,
@@ -347,9 +353,10 @@ module.exports = (env = "development") => {
                         picture: track.picture,
                         source: track.source.id,
                         streamUrl: track.streamUrl,
-                        similarity: rating * .5 + artistsSimilarity * .5,
+                        similarity,
                     };
                 })
+                .filter((track) => track)
                 .sort((a, b) => b.similarity - a.similarity)
                 .slice(0, limit);
         }
