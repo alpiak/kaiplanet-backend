@@ -23,8 +23,8 @@ module.exports = () => class {
         return this._source;
     }
 
-    get streamUrl() {
-        return this._streamUrl;
+    get streamUrls() {
+        return this._streamUrls;
     }
 
     _id;
@@ -33,15 +33,20 @@ module.exports = () => class {
     _artists;
     _picture;
     _source;
-    _streamUrl;
+    _streamUrls;
 
-    constructor(id, name, duration, artists, picture, source, streamUrl) {
+    constructor(id, name, duration, artists, picture, source, streamUrls) {
         this._id = id;
         this._name = name;
         this._duration = duration;
         this._artists = artists;
         this._picture = picture;
         this._source = source;
-        this._streamUrl = streamUrl;
+
+        if (Array.isArray(streamUrls)) {
+            this._streamUrls = streamUrls;
+        } else {
+            this._streamUrls = streamUrls && [streamUrls];
+        }
     }
 };

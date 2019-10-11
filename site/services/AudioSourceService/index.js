@@ -1,4 +1,7 @@
-const stringSimilarity = require('string-similarity');
+const url = require("url");
+const dns = require("dns");
+
+const stringSimilarity = require("string-similarity");
 
 module.exports = (env = "development") => {
     const config = require(`./config/${env}`);
@@ -21,6 +24,7 @@ module.exports = (env = "development") => {
     const KuGouMobileCDNProducer = require("./producers/KuGouMobileCDNProducer")({ Artist, Track, TrackList, Source, Producer, config });
 
     return class AudioSourceService {
+        static QUEUE_MAX_SIZE = config.caching.queueMaxSize;
         static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, KuGouMobileProducer, NodeSoundCloudProducer, HearthisProducer, KuGouMobileCDNProducer];
 
         static getSources() {
@@ -29,6 +33,14 @@ module.exports = (env = "development") => {
                 name: source.name,
                 icons: source.icons,
             }));
+        }
+
+        set cacheService(cacheService) {
+            this._cacheService = cacheService;
+        }
+
+        set locationService(locationService) {
+            this._locationService = locationService;
         }
 
         set proxyPool(proxyPool) {
@@ -41,7 +53,11 @@ module.exports = (env = "development") => {
             });
         }
 
+        _cacheService;
+        _locationService;
         _proxyPool = { getProxyList() { return null; } };
+        _trackCachingQueue = new Set();
+        _cachingJobRunning = false;
 
         constructor() {
             AudioSourceService.Producers.forEach((Producer) => {
@@ -70,6 +86,8 @@ module.exports = (env = "development") => {
                 return null;
             }
 
+            this._addToCachingQueue(track);
+
             return {
                 id: track.id,
                 name: track.name,
@@ -77,7 +95,7 @@ module.exports = (env = "development") => {
                 artists: track.artists.map(artist => ({name: artist.name})),
                 picture: track.picture,
                 source: track.source.id,
-                streamUrl: track.streamUrl,
+                streamUrls: track.streamUrls,
             };
         }
 
@@ -128,6 +146,8 @@ module.exports = (env = "development") => {
                 return [];
             }
 
+            this._addToCachingQueue(tracks);
+
             return stringSimilarity.findBestMatch(keywords, tracks.map(({name}) => name)).ratings
                 .map(({ rating }, i) => {
                     const track = tracks[i];
@@ -143,7 +163,7 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
-                        streamUrl: track.streamUrl,
+                        streamUrls: track.streamUrls,
                         similarity: Math.min(rating + artistsSimilarity, 1),
                     };
                 })
@@ -185,6 +205,8 @@ module.exports = (env = "development") => {
                 return null;
             }
 
+            this._addToCachingQueue(tracks);
+
             return tracks.map((track) => ({
                 id: track.id,
                 name: track.name,
@@ -192,7 +214,7 @@ module.exports = (env = "development") => {
                 artists: track.artists.map(artist => ({name: artist.name})),
                 picture: track.picture,
                 source: track.source.id,
-                streamUrl: track.streamUrl,
+                streamUrls: track.streamUrls,
             }));
         }
 
@@ -239,7 +261,7 @@ module.exports = (env = "development") => {
                                 artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
                                 picture: recommendedTrack.picture,
                                 source: recommendedTrack.source.id,
-                                streamUrl: recommendedTrack.streamUrl,
+                                streamUrls: recommendedTrack.streamUrls,
                             };
                         }
 
@@ -292,7 +314,7 @@ module.exports = (env = "development") => {
                             artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
                             picture: recommendedTrack.picture,
                             source: recommendedTrack.source.id,
-                            streamUrl: recommendedTrack.streamUrl,
+                            streamUrls: recommendedTrack.streamUrls,
                         };
                     }
                 } catch (e) {
@@ -352,13 +374,118 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
-                        streamUrl: track.streamUrl,
+                        streamUrls: track.streamUrls,
                         similarity,
                     };
                 })
                 .filter((track) => track)
                 .sort((a, b) => b.similarity - a.similarity)
                 .slice(0, limit);
+        }
+
+        _addToCachingQueue(tracks) {
+            if (this._trackCachingQueue.size >= AudioSourceService.QUEUE_MAX_SIZE) {
+                return;
+            }
+
+            if (!Array.isArray(tracks)) {
+                this._trackCachingQueue.add(tracks);
+            } else {
+                for (const track of tracks) {
+                    this._trackCachingQueue.add(track);
+                }
+            }
+
+            this._runCachingJob();
+        }
+
+        async _runCachingJob() {
+            if (this._cachingJobRunning) {
+                return;
+            }
+
+            this._cachingJobRunning = true;
+
+            while (true) {
+                if (!this._trackCachingQueue.size) {
+                    break;
+                }
+
+                const track = this._trackCachingQueue.values().next().value;
+
+                this._trackCachingQueue.delete(track);
+
+                try {
+                    await this._cacheTrack(track);
+                } catch (e) {
+                    console.log(e);
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, config.caching.coolDownTime));
+            }
+
+            this._cachingJobRunning = false;
+        }
+
+        async _cacheTrack(track) {
+            const streamUrls = (await (async () => {
+                if (track.streamUrls) {
+                   return track.streamUrls;
+                }
+
+                return await this.getStreamUrls(track.id, track.source.id);
+            })()).map((streamUrl) => {
+                const fixedUrl = ((url) => {
+                    if (!/:/.test(url)) {
+                        return 'https://' + url;
+                    }
+
+                    return url;
+                })(streamUrl.replace(/^\/+/, '').replace(/\/+$/, ''));
+
+                return url.parse(fixedUrl);
+            });
+
+            for (const streamUrl of streamUrls) {
+                if (this._cacheService.exists(streamUrl.href)) {
+                    return;
+                }
+
+                try {
+                    await this._cacheService.cache(streamUrl.href, await this._cacheService.sendRequest(streamUrl, "GET", { timeout: config.caching.timeout }));
+                } catch (e) {
+                    console.log(e);
+
+                    const proxies = await (async (url) => {
+                        const ip = await new Promise((resolve, reject) => {
+                            dns.lookup(url.host, (err, address) => {
+                                if (err) {
+                                    reject(err);
+                                }
+
+                                resolve(address);
+                            });
+                        });
+
+                        const location = await this._locationService.getLocation(ip);
+
+                        return this._proxyPool.getProxyList(location.areaCode);
+                    })(streamUrl);
+
+                    for (const proxy of proxies) {
+                        try {
+                            await this._cacheService.cache(streamUrl.href, await this._cacheService.sendRequest(streamUrl, "GET", {
+                                proxy,
+                                timeout: config.caching.timeout,
+                            }));
+
+                            break;
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    }
+                }
+            }
         }
     }
 };

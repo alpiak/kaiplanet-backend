@@ -110,19 +110,28 @@ module.exports = (env = "development") => {
         _Producers = [IpHaiProducer, KuaidailiProducer, EightNineIpProducer, XiciDailiProducer];
         _proxies = new Map(Area.values().map((area) => [area, new Set()]));
         _testCases = config.testCases.map((testCase) => new TestCase(testCase.url, testCase.method, testCase.areas.map((area) => Area.fromCode(area))));
+        _scheduleJobRunning = false;
 
         constructor() {
             schedule.scheduleJob(`*/${ProxyService.PERIOD_TO_REFRESH_PROXY_LIST} * * * *`, async () => {
+                if (this._scheduleJobRunning) {
+                    return;
+                }
+
+                this._scheduleJobRunning = true;
+
                 try {
                     await this._refreshProxyList();
                 } catch (e) {
                     console.log(e);
                 }
+
+                this._scheduleJobRunning = false;
             });
         }
 
         getProxyList(areaCode = "GLOBAL", protocol = "all", sortBy = "responseTime") {
-            return [...this._proxies.get(Area.fromCode(areaCode.toUpperCase()))].filter((proxy) => {
+            return [...(this._proxies.get(Area.fromCode(areaCode.toUpperCase())) || [])].filter((proxy) => {
                 if (protocol === "http" || protocol === "https") {
                     return proxy.protocol === protocol;
                 }

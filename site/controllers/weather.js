@@ -9,10 +9,11 @@ module.exports = {
         app.post('/weather', this.darkSky);
     },
 
-    darkSky: (req, res) => {
-        const ip = require('../services/request')(req).getClientIp();
+    darkSky: async (req, res) => {
+        try {
+            const ip = require("../libraries/utils").getClientIp(req);
+            const location = await (new (require("../services/LocationService")())()).getLocation(ip);
 
-        require('../services/location')().getLocation(ip, (location) => {
             const options = {
                 hostname: 'api.darksky.net',
                 path: '/forecast/' + require('../credentials').darkSkyKey + '/' + location.coords.latitude + ',' + location.coords.longitude,
@@ -38,6 +39,11 @@ module.exports = {
                     });
                 })
                 .end();
-        });
+        } catch (e) {
+            res.json({
+                code: -1,
+                message: 'Query Failed - ' + e.message
+            });
+        }
     }
 };

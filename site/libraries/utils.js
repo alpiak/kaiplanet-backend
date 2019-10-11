@@ -107,4 +107,8 @@ const request = (options) => new Promise((resolve, reject) => {
     req.end();
 });
 
-module.exports = { request };
+const getClientIp = (req) => {
+    return req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress || req.ip;
+}
+
+module.exports = { request, getClientIp };
