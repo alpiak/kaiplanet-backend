@@ -19,7 +19,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         this._musicInterface = new MusicInterface(host, port, protocol);
     }
 
-    async search(keywords, source, { limit } = {}) {
+    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
         const tracks = (await (async () => {
             try {
                 return await this._musicInterface.search(keywords, 1, limit);
@@ -51,15 +51,17 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }(tracks);
     }
 
-    async getStreamUrls(id, source) {
+    async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         try {
-            return await this._musicInterface.getSongUrllist([id]);
+            return (await this._musicInterface.getSongUrllist([id]))
+                .filter((url) => url)
+                .map((url) => new Track.PlaybackSource([url], 0));
         } catch (e) {
             return [];
         }
     }
 
-    async getRecommend(track, source) {
+    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
         if (!track) {
             const tracks = await (async () => {
                 const lists = await (() => {
@@ -84,7 +86,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend();
+                return await super.getRecommend(track, source, { playbackQuality });
             }
 
             const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
@@ -100,14 +102,14 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             return new Track(randomTrack.songMid, randomTrack.songName, null, randomTrack.singer.map((singer) => new Artist(singer.singerName)), picture, source);
         }
 
-        return await super.getRecommend();
+        return await super.getRecommend(track, source, { playbackQuality });
     }
 
     async getLists(source) {
         return (await this._musicInterface.getToplists()).map((list) => new List(list.id, list.title, source));
     }
 
-    async getList(id, source, { limit, offset } = {}) {
+    async getList(id, source, { playbackQuality, limit, offset } = {}) {
         const tracks = await (async () => {
             try {
                 return (await this._musicInterface.getSongList(id)) || null;
@@ -123,8 +125,8 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         return null;
     }
 
-    async getAlternativeTracks(track, source, { limit } = {}) {
-        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
     }
 
     async _getPicture(track) {

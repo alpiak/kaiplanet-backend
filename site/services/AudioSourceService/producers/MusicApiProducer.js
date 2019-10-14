@@ -13,7 +13,7 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
         [Source.qq, []],
     ]);
 
-    async search(keywords, source, { limit } = {}) {
+    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
         const tracks = (await (() => {
             try {
                 return musicAPI.searchSong(source.id, {
@@ -38,15 +38,16 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
         }(tracks);
     }
 
-    async getStreamUrls(id, source) {
+    async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         try {
-            return [(await musicAPI.getSong(source, { id })).url];
+            const url = (await musicAPI.getSong(source, { id })).url;
+            return url ? [new Track.PlaybackSource([url], 0)] : [];
         } catch (e) {
             return [];
         }
     }
 
-    // async getRecommend(track, source) {
+    // async getRecommend(track, source, { playbackQuality = 0 } = {}) {
     //     const tracks = await (() => {
     //         if (source === Source.netEase) {
     //             return (async () => {
@@ -127,17 +128,17 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
             });
     }
 
-    async getList(id, source, { limit, offset } = {}) {
+    async getList(id, source, { playbackQuality = 0, limit, offset } = {}) {
         const res = await musicAPI.getPlaylist(source.id, { id: +id });
 
         if (res.success === true && res.songList) {
-            return res.songList.map(track => new Track(String(track.id), track.name, +track.duration, track.artists.map(artist => new Artist(artist.name)), track.album.coverBig && track.album.coverBig.replace(/^https/, 'http'), Source.netEase));
+            return res.songList.map((track) => new Track(String(track.id), track.name, +track.duration, track.artists.map(artist => new Artist(artist.name)), track.album.coverBig && track.album.coverBig.replace(/^https/, 'http'), Source.netEase));
         }
 
         return null;
     }
 
-    async getAlternativeTracks(track, source, { limit } = {}) {
-        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
     }
 };

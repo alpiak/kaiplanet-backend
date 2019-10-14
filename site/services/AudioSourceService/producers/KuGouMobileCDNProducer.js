@@ -21,7 +21,7 @@ module.exports = ({ Artist, Track, TrackList, Source, Producer, config }) => cla
         this._kuGouMobileCDN = new KuGouMobileCDN(host, port, protocol);
     }
 
-    async search(keywords, source, { limit } = {}) {
+    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
         const proxyPool = this._proxyPool;
 
         const tracks = (await (async () => {
@@ -64,7 +64,7 @@ module.exports = ({ Artist, Track, TrackList, Source, Producer, config }) => cla
         }(tracks);
     }
 
-    async getAlternativeTracks(track, source, { limit } = {}) {
-        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
     }
 };

@@ -1,4 +1,28 @@
 module.exports = () => class {
+    static PlaybackSource = class {
+        get urls() {
+            return this._urls;
+        }
+
+        get quality() {
+            return this._quality;
+        }
+
+        _urls;
+        _quality;
+
+        constructor(urls, quality = 0) {
+            if (Array.isArray(urls) && urls.filter((url) => url).length) {
+                this._urls = urls.filter((url) => url);
+            } else {
+                this._urls = urls && [urls];
+            }
+
+            this._quality = quality;
+        }
+
+    };
+
     get id() {
         return this._id;
     }
@@ -23,8 +47,8 @@ module.exports = () => class {
         return this._source;
     }
 
-    get streamUrls() {
-        return this._streamUrls;
+    get playbackSources() {
+        return this._playbackSources;
     }
 
     _id;
@@ -33,9 +57,9 @@ module.exports = () => class {
     _artists;
     _picture;
     _source;
-    _streamUrls;
+    _playbackSources;
 
-    constructor(id, name, duration, artists, picture, source, streamUrls) {
+    constructor(id, name, duration, artists, picture, source, playbackSources) {
         this._id = id;
         this._name = name;
         this._duration = duration;
@@ -43,10 +67,10 @@ module.exports = () => class {
         this._picture = picture;
         this._source = source;
 
-        if (Array.isArray(streamUrls)) {
-            this._streamUrls = streamUrls;
+        if (Array.isArray(playbackSources)) {
+            this._playbackSources = playbackSources;
         } else {
-            this._streamUrls = streamUrls && [streamUrls];
+            this._playbackSources = playbackSources && [playbackSources];
         }
     }
 };

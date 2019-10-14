@@ -47,15 +47,15 @@ module.exports = ({ TrackList }) => class Producer {
 
     constructor() { }
 
-    async search() {
+    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
         return new TrackList();
     }
 
-    async getStreamUrls(id, source) {
+    async getPlaybackSources(id, source, { playbackQuality = 0} = {}) {
         return [];
     }
 
-    async getRecommend() {
+    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
         return null;
     }
 
@@ -63,15 +63,15 @@ module.exports = ({ TrackList }) => class Producer {
         return null;
     }
 
-    async getList() {
+    async getList(id, source, { playbackQuality = 0, limit, offset } = {}) {
         return null;
     }
 
-    async getAlternativeTracks(track, source, { limit } = {}) {
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
         return [];
     }
 
-    async getTrack() {
+    async getTrack(id, source, { playbackQuality = 0 } = {}) {
         return null;
     }
 };

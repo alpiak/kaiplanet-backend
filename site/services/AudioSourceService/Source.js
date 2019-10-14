@@ -158,14 +158,14 @@ module.exports = ({ TrackList, config }) => class Source {
         }
     }
 
-    async getTrack(id, { producerRating } = {}) {
+    async getTrack(id, { playbackQuality = 0, producerRating } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         let err;
 
         for (const producer of sortedProducers) {
             try {
-                const track = await producer.getTrack(id, this);
+                const track = await producer.getTrack(id, this, { playbackQuality });
 
                 if (track) {
                     return track;
@@ -182,14 +182,14 @@ module.exports = ({ TrackList, config }) => class Source {
         return null;
     }
 
-    async search(keywords, { limit, producerRating } = {}) {
+    async search(keywords, { limit, producerRating, playbackQuality = 0 } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         let err;
 
         for (const producer of sortedProducers) {
             try {
-                const tracks = await producer.search(keywords, this, { limit });
+                const tracks = await producer.search(keywords, this, { limit, playbackQuality });
 
                 if (tracks && tracks.length) {
                     return tracks;
@@ -206,9 +206,10 @@ module.exports = ({ TrackList, config }) => class Source {
         return new TrackList();
     }
 
-    async getStreamUrls(id, { producerRating } = {}) {
+    async getPlaybackSources(id, { producerRating, playbackQuality = 0 } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
-        const urls = (await Promise.all(sortedProducers.map((producer) => producer.getStreamUrls(id, this._id))))
+
+        const urls = (await Promise.all(sortedProducers.map((producer) => producer.getPlaybackSources(id, this._id, { playbackQuality }))))
             .flat()
             .filter((url) => url);
 
@@ -243,14 +244,14 @@ module.exports = ({ TrackList, config }) => class Source {
         return null;
     }
 
-    async getList(listId, { limit, offset, producerRating } = {}) {
+    async getList(listId, { playbackQuality = 0, limit, offset, producerRating } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         let err;
 
         for (const producer of sortedProducers) {
             try {
-                const list = await producer.getList(listId, this, { limit, offset });
+                const list = await producer.getList(listId, this, { playbackQuality, limit, offset });
 
                 if (list) {
                     return list;
@@ -267,7 +268,7 @@ module.exports = ({ TrackList, config }) => class Source {
         return null;
     }
 
-    async getRecommend(track, { producerRating } = {}) {
+    async getRecommend(track, { playbackQuality = 0, producerRating } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         if (track) {
@@ -275,7 +276,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
             for (const producer of sortedProducers) {
                 try {
-                    const recommendedTrack = await producer.getRecommend(track, this);
+                    const recommendedTrack = await producer.getRecommend(track, this, { playbackQuality });
 
                     if (recommendedTrack) {
                         return recommendedTrack;
@@ -296,7 +297,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
         for (const producer of sortedProducers) {
             try {
-                const recommendedTrack = await producer.getRecommend(track, this);
+                const recommendedTrack = await producer.getRecommend(track, this, { playbackQuality });
 
                 if (recommendedTrack) {
                     return recommendedTrack;
@@ -313,14 +314,14 @@ module.exports = ({ TrackList, config }) => class Source {
         return null;
     }
 
-    async getAlternativeTracks(track, { limit, producerRating } = {}) {
+    async getAlternativeTracks(track, { playbackQuality = 0, limit, producerRating } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         let err;
 
         for (const producer of sortedProducers) {
             try {
-                const tracks = await producer.getAlternativeTracks(track, this, { limit });
+                const tracks = await producer.getAlternativeTracks(track, this, { playbackQuality, limit });
 
                 return tracks || null;
             } catch (e) {

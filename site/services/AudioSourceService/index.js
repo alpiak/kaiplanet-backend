@@ -79,8 +79,8 @@ module.exports = (env = "development") => {
             });
         }
 
-        async getTrack(id, sourceId, { producerRating } = {}) {
-            const track = await Source.fromId(sourceId).getTrack(id, { producerRating });
+        async getTrack(id, sourceId, { playbackQuality = 0, producerRating } = {}) {
+            const track = await Source.fromId(sourceId).getTrack(id, { playbackQuality, producerRating });
 
             if (!track) {
                 return null;
@@ -95,11 +95,15 @@ module.exports = (env = "development") => {
                 artists: track.artists.map(artist => ({name: artist.name})),
                 picture: track.picture,
                 source: track.source.id,
-                streamUrls: track.streamUrls,
+
+                playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                    urls: playbackSource.urls,
+                    quality: playbackSource.quality,
+                })),
             };
         }
 
-        async search(keywords, { sourceIds, limit = 20, sourceRating, producerRating } = {}) {
+        async search(keywords, { sourceIds, limit = 20, sourceRating, producerRating, playbackQuality = 0 } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -113,6 +117,7 @@ module.exports = (env = "development") => {
                     return await source.search(keywords, {
                         limit,
                         producerRating,
+                        playbackQuality,
                     });
                 } catch {
                     return new TrackList();
@@ -163,7 +168,12 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
-                        streamUrls: track.streamUrls,
+
+                        playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                            urls: playbackSource.urls,
+                            quality: playbackSource.quality,
+                        })),
+
                         similarity: Math.min(rating + artistsSimilarity, 1),
                     };
                 })
@@ -198,8 +208,8 @@ module.exports = (env = "development") => {
             }));
         };
 
-        async getList(listId, sourceId, {limit, offset, sourceRating, producerRating} = {}) {
-            const tracks = await Source.fromId(sourceId).getList(listId, {limit, offset, producerRating});
+        async getList(listId, sourceId, { playbackQuality = 0, limit, offset, sourceRating, producerRating } = {}) {
+            const tracks = await Source.fromId(sourceId).getList(listId, { playbackQuality, limit, offset, producerRating });
 
             if (!tracks) {
                 return null;
@@ -214,21 +224,28 @@ module.exports = (env = "development") => {
                 artists: track.artists.map(artist => ({name: artist.name})),
                 picture: track.picture,
                 source: track.source.id,
-                streamUrls: track.streamUrls,
+
+                playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                    urls: playbackSource.urls,
+                    quality: playbackSource.quality,
+                })),
             }));
         }
 
-        async getStreamUrls(id, sourceId, { sourceRating, producerRating } = {}) {
+        async getPlaybackSources(id, sourceId, { sourceRating, producerRating, playbackQuality = 0 } = {}) {
             const source = Source.fromId(sourceId);
 
             if (source) {
-                return await source.getStreamUrls(id, { producerRating });
+                return (await source.getPlaybackSources(id, { producerRating, playbackQuality })).map((playbackSource) => ({
+                    urls: playbackSource.urls,
+                    quality: playbackSource.quality,
+                }));
             } else {
                 return null;
             }
         }
 
-        async getRecommend(track, sourceIds, { sourceRating, producerRating } = {}) {
+        async getRecommend(track, sourceIds, { playbackQuality = 0, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -247,10 +264,10 @@ module.exports = (env = "development") => {
                             if (track) {
                                 const { name, artists } = track;
 
-                                return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { producerRating }) || null;
+                                return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { playbackQuality, producerRating }) || null;
                             }
 
-                            return await source.getRecommend(null, { producerRating }) || null;
+                            return await source.getRecommend(null, { playbackQuality, producerRating }) || null;
                         })(track);
 
                         if (recommendedTrack) {
@@ -261,7 +278,11 @@ module.exports = (env = "development") => {
                                 artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
                                 picture: recommendedTrack.picture,
                                 source: recommendedTrack.source.id,
-                                streamUrls: recommendedTrack.streamUrls,
+
+                                playbackSources: recommendedTrack.playbackSources && recommendedTrack.playbackSources.map((playbackSource) => ({
+                                    urls: playbackSource.urls,
+                                    quality: playbackSource.quality,
+                                })),
                             };
                         }
 
@@ -300,10 +321,10 @@ module.exports = (env = "development") => {
                         if (track) {
                             const { name, artists } = track;
 
-                            return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { producerRating }) || null;
+                            return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { playbackQuality, producerRating }) || null;
                         }
 
-                        return await source.getRecommend(null, { producerRating }) || null;
+                        return await source.getRecommend(null, { playbackQuality, producerRating }) || null;
                     })(track);
 
                     if (recommendedTrack) {
@@ -314,7 +335,11 @@ module.exports = (env = "development") => {
                             artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
                             picture: recommendedTrack.picture,
                             source: recommendedTrack.source.id,
-                            streamUrls: recommendedTrack.streamUrls,
+
+                            playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                                urls: playbackSource.urls,
+                                quality: playbackSource.quality,
+                            })),
                         };
                     }
                 } catch (e) {
@@ -325,7 +350,7 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, { limit = 10, offset, sourceIds, exceptedSourceIds = [], exactMatch = false, sourceRating, producerRating } = {}) {
+        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedSourceIds = [], exactMatch = false, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -337,6 +362,7 @@ module.exports = (env = "development") => {
             const tracks = (await Promise.all(sources.map(async (source) => {
                 try {
                     return await source.getAlternativeTracks(new Track(undefined, name, undefined, artistNames.map(artistName => new Artist(artistName))), {
+                        playbackQuality,
                         limit,
                         producerRating,
                     });
@@ -374,7 +400,12 @@ module.exports = (env = "development") => {
                         artists: track.artists.map(artist => ({name: artist.name})),
                         picture: track.picture,
                         source: track.source.id,
-                        streamUrls: track.streamUrls,
+
+                        playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                            urls: playbackSource.urls,
+                            quality: playbackSource.quality,
+                        })),
+
                         similarity,
                     };
                 })
@@ -429,11 +460,13 @@ module.exports = (env = "development") => {
 
         async _cacheTrack(track) {
             const streamUrls = (await (async () => {
-                if (track.streamUrls) {
-                   return track.streamUrls;
+                if (track.playbackSources) {
+                   return track.playbackSources;
                 }
 
-                return await this.getStreamUrls(track.id, track.source.id);
+                return (await this.getPlaybackSources(track.id, track.source.id))
+                    .map((playbackSource) => playbackSource.urls)
+                    .flat();
             })()).map((streamUrl) => {
                 const fixedUrl = ((url) => {
                     if (!/:/.test(url)) {

@@ -21,7 +21,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         this._kugouMusicApi = new KugouMusicApi(host, port, protocol);
     }
 
-    async search(keywords, source, { limit } = {}) {
+    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
         const kugouMusicApi = this._kugouMusicApi;
         const proxyPool = this._proxyPool;
 
@@ -62,7 +62,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                         const picture = (details && details.img) || undefined;
                         const streamUrl = (details && details.play_url) || undefined;
 
-                        return new Track(track.FileHash, track.SongName, +track.SQDuration * 1000, track.SingerName.split(/(?:、|,)/).map((singerName) => new Artist(singerName.trim())), picture, source, streamUrl && [streamUrl]);
+                        return new Track(track.FileHash, track.SongName, +track.SQDuration * 1000, track.SingerName.split(/(?:、|,)/).map((singerName) => new Artist(singerName.trim())), picture, source, streamUrl && [new Track.PlaybackSource([streamUrl], 0)]);
                     }
                 }(tracks);
             } catch (e) {
@@ -73,23 +73,25 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         throw err;
     }
 
-    async getStreamUrls(id, source) {
+    async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         let i = 0;
 
         while (i++ < (this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1)) {
             try {
-                return [(await this._kugouMusicApi.getSongUrl(id, { proxy: this._proxyPool.getRandomProxy("CN") })).play_url];
+                const url = (await this._kugouMusicApi.getSongUrl(id, { proxy: this._proxyPool.getRandomProxy("CN") })).play_url;
+
+                return url ? [new Track.PlaybackSource([url], 0)] : [];
             } catch { }
         }
 
         return [];
     }
 
-    async getAlternativeTracks(track, source, { limit } = {}) {
-        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
     }
 
-    async getTrack(id, source) {
+    async getTrack(id, source, { playbackQuality = 0 } = {}) {
         const track = await retry(async () => {
             try {
                 return await this._kugouMusicApi.getSongUrl(id, { proxy: this._proxyPool.getRandomProxy("CN") });
@@ -101,7 +103,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
 
         if (track) {
-            return new Track(track.hash, track.song_name, track.timelength, track.authors.map((author) => new Artist(author.author_name)), track.img, source, track.play_url || undefined);
+            return new Track(track.hash, track.song_name, track.timelength, track.authors.map((author) => new Artist(author.author_name)), track.img, source, track.play_url ? [new Track.PlaybackSource([track.play_url], 0)] : undefined);
         }
 
         return null;

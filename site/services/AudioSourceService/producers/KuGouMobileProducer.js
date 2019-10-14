@@ -21,27 +21,27 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
         this._kuGouMobile = new KuGouMobile(host, port, protocol);
     }
 
-    async getRecommend(track, source) {
+    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
         if (!track) {
             const tracks = await (async () => {
                 const lists = await this.getLists(source);
                 const randomList = lists[Math.floor(lists.length * Math.random())];
 
                 if (randomList) {
-                    return (await this.getList(randomList.id, source));
+                    return (await this.getList(randomList.id, source, { playbackQuality }));
                 }
 
                 return  null;
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend();
+                return await super.getRecommend(track, source, { playbackQuality });
             }
 
             return tracks[Math.floor(tracks.length * Math.random())];
         }
 
-        return await super.getRecommend();
+        return await super.getRecommend(track, source, { playbackQuality });
     }
 
     async getLists(source) {
@@ -68,7 +68,7 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
         }
     }
 
-    async getList(id, source, { limit, offset } = {}) {
+    async getList(id, source, { playbackQuality = 0, limit, offset } = {}) {
         const tracks = await (async () => {
             try {
                 return await retry(async () => {

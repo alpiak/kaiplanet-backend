@@ -23,10 +23,13 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
     class NodeSoundCloudTrackList extends TrackList {
         _source;
+        _playbackQuality;
 
-        constructor(tracks, source) {
+        constructor(tracks, source, { playbackQuality = 0 } = {}) {
             super(tracks);
+
             this._source = source;
+            this._playbackQuality = playbackQuality;
         }
 
         async get(index) {
@@ -47,7 +50,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
         static _sources = [Source.soundCloud];
 
-        async search(keywords, source, { limit } = {}) {
+        async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
             const tracks = (await (async () => {
                 try {
                     return await SC.get('/tracks', {
@@ -62,17 +65,20 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             return new NodeSoundCloudTrackList(tracks, source);
         }
 
-        async getStreamUrls(id, source) {
+        async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
             try {
                 const tracks = await SC.get('/tracks', { ids: String(id) });
 
-                return tracks && tracks.map((track) => track && track.stream_url && `${track.stream_url}?client_id=${SC.clientId}`).filter((url) => url);
+                return tracks && tracks
+                    .map((track) => track && track.stream_url && `${track.stream_url}?client_id=${SC.clientId}`)
+                    .filter((url) => url)
+                    .map((url) => new Track.PlaybackSource([url], 0));
             } catch (e) {
                 return [];
             }
         }
 
-        async getRecommend({ name, artists }, source) {
+        async getRecommend({ name, artists }, source, { playbackQuality = 0 }) {
             const tracks = await (async () => {
                 if (name) {
                     const matchedTrack = (await SC.get('/tracks', {
@@ -96,16 +102,16 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 return null;
             }
 
-            const trackList = new NodeSoundCloudTrackList(tracks, source);
+            const trackList = new NodeSoundCloudTrackList(tracks, source, { playbackQuality });
 
             return trackList.get(Math.floor(trackList.length * Math.random())) || null;
         }
 
-        async getAlternativeTracks(track, source, { limit } = {}) {
-            return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { limit })).values();
+        async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+            return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
         }
 
-        async getTrack(id, source) {
+        async getTrack(id, source, { playbackQuality = 0 } = {}) {
             const track = await (async () => {
                 try {
                     return (await SC.get('/tracks', { ids: String(id) }))[0];
@@ -117,7 +123,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (track) {
-                return new Track(String(track.id), track.title, track.duration, [new Artist(track.user.username)], track.artwork_url || undefined, source, track.stream_url ? [`${track.stream_url}?client_id=${SC.clientId}`] : undefined);
+                return new Track(String(track.id), track.title, track.duration, [new Artist(track.user.username)], track.artwork_url || undefined, source, track.stream_url ? [new Track.PlaybackSource([`${track.stream_url}?client_id=${SC.clientId}`], 0)] : undefined);
             }
 
             return null;
