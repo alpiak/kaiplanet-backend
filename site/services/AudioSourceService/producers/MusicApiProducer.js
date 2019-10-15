@@ -40,7 +40,7 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
 
     async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         try {
-            const url = (await musicAPI.getSong(source, { id })).url;
+            const url = (await musicAPI.getSong(source, { id, br: 128000 })).url;
             return url ? [new Track.PlaybackSource([url], 0)] : [];
         } catch (e) {
             return [];

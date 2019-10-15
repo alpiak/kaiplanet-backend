@@ -26,7 +26,7 @@ module.exports =  () => class {
     }
 
     getSongURL(id, { proxy } = {}) {
-        return this.request("/song/url", { id }, ["data"], { proxy });
+        return this.request("/song/url", { id, br: 128000 }, ["data"], { proxy });
     }
 
     getToplist({ proxy } = {}) {

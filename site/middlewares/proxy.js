@@ -214,6 +214,8 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
             'referer': `${targetUrl.protocol}//${targetUrl.host}${(targetUrl.port && (':' + targetUrl.port)) || ''}/`,
         };
 
+        let raceEnded = false;
+
         const originRes = await (async () => {
             if (cacheService.exists(targetUrl.href)) {
                 return cacheService.get(targetUrl.href);
@@ -246,7 +248,13 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     options.agent = new ProxyAgent(proxy);
                 }
 
-                const targetReq = client.request(options, (res) => resolve(res));
+                const targetReq = client.request(options, (res) => {
+                    resolve(res);
+
+                    if (raceEnded) {
+                        targetReq.abort();
+                    }
+                });
 
                 targetReq.on("error", (e) => {
                     failCount++;
@@ -294,6 +302,8 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                 return proxies.map(sendRequest);
             })())]);
         })();
+
+        raceEnded = true;
 
         if (!cacheService.exists(targetUrl.href) && originRes.statusCode >= 200 && originRes.statusCode < 300) {
             if (!req.headers["range"]) {

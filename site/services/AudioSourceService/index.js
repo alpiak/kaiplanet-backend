@@ -350,7 +350,7 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedSourceIds = [], exactMatch = false, sourceRating, producerRating } = {}) {
+        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -380,7 +380,7 @@ module.exports = (env = "development") => {
             }
 
             return stringSimilarity.findBestMatch(name, tracks.map(({name}) => name)).ratings
-                .map(({rating}, i) => {
+                .map(({ rating }, i) => {
                     const track = tracks[i];
 
                     const artistsSimilarity = track.artists
@@ -390,6 +390,15 @@ module.exports = (env = "development") => {
                     const similarity = rating * .5 + artistsSimilarity * .5;
 
                     if (exactMatch && similarity < 1) {
+                        return null;
+                    }
+
+                    const similarityRangeValid = similarityRange
+                        && typeof similarityRange.high !== "undefined"
+                        && typeof similarityRange.low !== "undefined"
+                        && +similarityRange.high >= +similarityRange.low;
+
+                    if (similarityRangeValid && similarity > similarityRange.high || similarity < similarityRange.low) {
                         return null;
                     }
 

@@ -2,7 +2,7 @@ const MusicInterface = require("../../../libraries/audioSource/MusicInterface")(
 
 module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) => class MusicInterfaceProducer extends Producer {
     static _sources = [Source.qq];
-    static _instances = config.producers.musicInterface.instances.map((instance) => new Producer.Instance(instance.host, instance.protocol));
+    static _instances = config.producers.musicInterface.instances.map((instance) => new Producer.Instance(instance.host, instance.port, instance.protocol));
 
     static get sources() {
         return MusicInterfaceProducer._sources;

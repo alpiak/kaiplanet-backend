@@ -23,8 +23,10 @@ module.exports =  () => class MusicInterface {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
+            port: this._port,
             path: `${MusicInterface.basePath}/search/${encodeURIComponent(key)}${pageNum ? "/" + pageNum : ""}${pageNum && pageSize ? "/" + pageSize : ""}`,
-            method: "GET"
+            method: "GET",
+            rejectUnauthorized: false,
         });
 
         if (res.errno === 0) {
@@ -38,8 +40,10 @@ module.exports =  () => class MusicInterface {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
+            port: this._port,
             path: `${MusicInterface.basePath}/songUrllist/${ids.join(",")}`,
-            method: "GET"
+            method: "GET",
+            rejectUnauthorized: false,
         });
 
         if (res.errno === 0) {
@@ -53,8 +57,10 @@ module.exports =  () => class MusicInterface {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
+            port: this._port,
             path: `${MusicInterface.basePath}/toplist`,
-            method: "GET"
+            method: "GET",
+            rejectUnauthorized: false,
         });
 
         if (res.errno === 0) {
@@ -68,8 +74,10 @@ module.exports =  () => class MusicInterface {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
+            port: this._port,
             path: `${MusicInterface.basePath}/songList/${id}`,
-            method: "GET"
+            method: "GET",
+            rejectUnauthorized: false,
         });
 
         if (res.errno === 0) {
@@ -83,8 +91,10 @@ module.exports =  () => class MusicInterface {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
+            port: this._port,
             path: `${MusicInterface.basePath}/albumImg/${albummid}/${singerMid}`,
-            method: "GET"
+            method: "GET",
+            rejectUnauthorized: false,
         });
 
         if (res.errno === 0) {
