@@ -4,7 +4,7 @@
 
 const express = require('express');
 
-const User = require('../models/users');
+const User = require("../models/UserModel");
 
 module.exports = {
     registerRoutes: function(app) {

@@ -7,6 +7,10 @@ module.exports = ({ Track }) => class {
         return this._name;
     }
 
+    get source() {
+        return this._source;
+    }
+
     _id;
     _name;
     _source;

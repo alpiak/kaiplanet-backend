@@ -9,7 +9,7 @@ passport.serializeUser(function(user, done) {
     done(null, user.id);
 });
 
-const User = require('../models/users');
+const User = require("../models/UserModel");
 
 passport.deserializeUser(function(id, done) {
     User.findById(id, function(err, user) {
@@ -28,7 +28,7 @@ module.exports = function (app, options) {
 
     return {
         init: function() {
-            const bubblesoftConnection = require('../db').bubblesoftConnection;
+            const kaiPlanetConnection = require("../db").kaiPlanetConnection;
 
             app.use(require('express-session')({
                 secret: require('../credentials').cookieSecret,
@@ -37,7 +37,7 @@ module.exports = function (app, options) {
                 cookie: { maxAge: 2628000000 },
                 store: new (require('express-sessions'))({
                     storage: 'mongodb',
-                    instance: bubblesoftConnection,
+                    instance: kaiPlanetConnection,
                     expire: 86400
                 })
             }));
@@ -50,7 +50,7 @@ module.exports = function (app, options) {
                 clientSecret: config.baidu[env].appSecret,
                 callbackURL: '/auth/baidu/callback'
             }, function(accessToken, refreshToken, profile, done) {
-                const User = require('../models/users');
+                const User = require("../models/UserModel");
 
                 User.findOrCreate({ baiduId: profile.id }, {
                     nickName: profile.displayName || profile.username,

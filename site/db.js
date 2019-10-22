@@ -16,19 +16,17 @@ let opts = {
             socketOptions: { keepAlive: 1 }
         }
     },
-    bubblesoftConnection;
+    kaiPlanetConnection;
 
 switch(app.get('env')){
     case 'development':
-        bubblesoftConnection = mongoose.connect(credentials.mongo.bubblesoft.development.connectionString, opts);
+        kaiPlanetConnection = mongoose.connect(credentials.mongo.bubblesoft.development.connectionString, opts);
         break;
     case 'production':
-        bubblesoftConnection = mongoose.connect(credentials.mongo.bubblesoft.production.connectionString, opts);
+        kaiPlanetConnection = mongoose.connect(credentials.mongo.bubblesoft.production.connectionString, opts);
         break;
     default:
         throw new Error('Unknown execution environment: ' + app.get('env'));
 }
 
-module.exports = {
-    bubblesoftConnection
-};
+module.exports = { kaiPlanetConnection };
