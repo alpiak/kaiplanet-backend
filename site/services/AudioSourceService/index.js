@@ -4,6 +4,8 @@ const dns = require("dns");
 const schedule = require("node-schedule");
 const stringSimilarity = require("string-similarity");
 
+const RaceManager = require("./RaceManager")();
+
 const TrackListModel = require("../../models/TrackListModel");
 
 module.exports = (env = "development") => {
@@ -44,6 +46,7 @@ module.exports = (env = "development") => {
 
         set locationService(locationService) {
             this._locationService = locationService;
+            this._raceManager.locationService = locationService;
         }
 
         set proxyPool(proxyPool) {
@@ -54,11 +57,14 @@ module.exports = (env = "development") => {
                     producer.proxyPool = proxyPool;
                 });
             });
+
+            this._raceManager.proxyPool = proxyPool;
         }
 
         _cacheService;
         _locationService;
         _proxyPool = { getProxyList() { return null; } };
+        _raceManager = new RaceManager();
         _trackCachingQueue = new Set();
         _cachingJobRunning = false;
         _scheduleJobRunning = false;
@@ -101,7 +107,13 @@ module.exports = (env = "development") => {
         }
 
         async getTrack(id, sourceId, { playbackQuality = 0, producerRating } = {}) {
-            const track = await Source.fromId(sourceId).getTrack(id, { playbackQuality, producerRating });
+            const source = Source.fromId(sourceId);
+
+            if (!source) {
+                return null;
+            }
+
+            const track = await source.getTrack(id, { playbackQuality, producerRating });
 
             if (!track) {
                 return null;
@@ -447,6 +459,10 @@ module.exports = (env = "development") => {
         }
 
         async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating } = {}) {
+            if (!name || !artistNames) {
+                return null;
+            }
+
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -519,6 +535,73 @@ module.exports = (env = "development") => {
                 .slice(0, limit);
         }
 
+        async getStream(id, sourceId, { quality ,timeToWait, alternativeTracks = {} } = {}) {
+            const { track, sourceIds, exceptedSourceIds, similarityRange, exactMatch } = alternativeTracks;
+
+            const { name, artistNames } = await (async (track) => {
+                if (!track) {
+                    track = await this.getTrack(id, sourceId);
+                }
+
+                if (!track) {
+                    return {};
+                }
+
+                return track;
+            })(track);
+
+            const altTracksPromises = (name && artistNames) ? AudioSourceService.getSources()
+                .filter((source) => source.id !== sourceId)
+                .filter((source) => sourceIds.includes(source.id))
+                .filter((source) => !exceptedSourceIds.includes(source.id))
+                .map((source) => this.getAlternativeTracks(name, artistNames, {
+                    playbackQuality: quality,
+                    sourceIds: [source.id],
+                    similarityRange,
+                    exactMatch,
+                })) : [];
+
+            const playbackSources = await this.getPlaybackSources(id, sourceId, { playbackQuality: quality });
+
+            let raceEnded = false;
+
+            const racePromise = this._raceManager.startRace();
+
+            if (playbackSources) {
+                for (const playbackSource of playbackSources) {
+                    this._raceManager.joinRace(playbackSource.urls, timeToWait * Math.abs(playbackSource.quality - quality));
+                }
+            }
+
+            setTimeout(async () => {
+                if (raceEnded === true) {
+                    return;
+                }
+
+                for(const altTrack of (await altTracksPromises)) {
+                    if (!altTrack.playbackSources || !altTrack.playbackSources.length) {
+                        altTrack.playbackSources = this.getPlaybackSources(altTrack.id, altTrack.source, { playbackQuality: quality });
+                    }
+
+                    for (const playbackSource of altTrack.playbackSources) {
+                        this._raceManager.joinRace(playbackSource.urls, timeToWait * Math.abs(playbackSource.quality - quality));
+                    }
+
+                    this._raceManager.stopJoinRace();
+                }
+            }, timeToWait);
+
+            if (!this._raceManager.racerNum) {
+                return null;
+            }
+
+            const stream = await racePromise;
+
+            raceEnded = true;
+
+            return stream;
+        }
+
         _addToCachingQueue(tracks) {
             if (this._trackCachingQueue.size >= AudioSourceService.QUEUE_MAX_SIZE) {
                 return;
@@ -565,13 +648,15 @@ module.exports = (env = "development") => {
 
         async _cacheTrack(track) {
             const streamUrls = (await (async () => {
-                if (track.playbackSources) {
-                   return track.playbackSources;
-                }
+                const playbackSources = await (async () => {
+                    if (track.playbackSources) {
+                        return track.playbackSources;
+                    }
 
-                return (await this.getPlaybackSources(track.id, track.source.id))
-                    .map((playbackSource) => playbackSource.urls)
-                    .flat();
+                    return await this.getPlaybackSources(track.id, track.source.id);
+                })();
+
+                return playbackSources.map((playbackSource) => playbackSource.urls).flat();
             })()).map((streamUrl) => {
                 const fixedUrl = ((url) => {
                     if (!/:/.test(url)) {

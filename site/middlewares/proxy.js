@@ -227,7 +227,7 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
             const sendRequest = (proxy) => new Promise((resolve, reject) => {
                 const client = targetUrl.protocol === 'https:' ? https : http;
 
-                if (!zlib.createBrotliDecompress || !zlib.createBrotliCompress) {
+                if ((!zlib.createBrotliDecompress || !zlib.createBrotliCompress) && reqHeaders["accept-encoding"]) {
                     reqHeaders['accept-encoding'] = reqHeaders['accept-encoding']
                         .split(',')
                         .filter((encoding) => !/br/.test(encoding))

@@ -3,6 +3,7 @@
  */
 
 const apicache = require('apicache');
+const { pipe } = require("mississippi");
 
 const cache = apicache.middleware;
 
@@ -68,6 +69,8 @@ module.exports = ({ AudioSourceService }) => class {
         app.post('/audio/alttracks', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
         }), (req, res) => this.getAlternativeTracks(req, res));
+
+        app.get("/audio/stream/:source/:id/:options?", (req, res, next) => this.stream(req, res, next));
     }
 
     /**
@@ -195,5 +198,72 @@ module.exports = ({ AudioSourceService }) => class {
             exactMatch: reqBody.exactMatch || false,
             playbackQuality: reqBody.playbackQuality || 0,
         })));
+    }
+
+    /**
+     * @api {get} /audio/stream/:source/:id/:options?
+     *
+     * @apiParam {String} id Track ID.
+     * @apiParam {String} source Source ID.
+     * @apiParam {String} [options] Optional Options object encoded as JSON string.
+     * @apiParam {Number{0-1}} [options.quality=0] Optional Expected playback quality.
+     * @apiParam {Number} [options.timeToWait=0] Optional Time to wait before fetching for sources with lower priority.
+     * @apiParam {Object} [options.alternativeTracks] Optional Options for alternative tracks
+     * @apiParam {Object} [options.alternativeTracks.track] Optional Track for which to get alternative tracks.
+     * @apiParam {String} [options.alternativeTracks.track.name] Optional Song name.
+     * @apiParam {String[]} [options.alternativeTracks.track.artists] Optional List of artist names.
+     * @apiParam {String[]} [options.alternativeTracks.sources] Optional Sources to search by.
+     * @apiParam {String[]} [options.alternativeTracks.exceptedSources] Optional Sources excepted for search.
+     * @apiParam {Boolean} [options.alternativeTracks.exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only.
+     * @apiParam {Object} [options.alternativeTracks.similarityRange] Optional Similarity range to filter the results.
+     * @apiParam {Number{0-1}} [options.alternativeTracks.similarityRange.high] Optional The highest similarity.
+     * @apiParam {Number{0-1}} [options.alternativeTracks.similarityRange.low] Optional The lowest similarity.
+     */
+    async stream(req, res, next) {
+        const options = (() => {
+            if (!req.params.options) {
+                return {};
+            }
+
+            return JSON.parse(req.params.options);
+        })();
+
+        try {
+            const stream = await this._audioSourceService.getStream(req.params.id, req.params.source, {
+                quality: +options.quality || 0,
+                timeToWait: options.timeToWait || 0,
+                alternativeTracks: options.alternativeTracks ? {
+                    track: options.alternativeTracks.track ? {
+                        name: options.alternativeTracks.track.name,
+                        artistNames: options.alternativeTracks.track.artists,
+                    }: undefined,
+                    sourceIds: options.alternativeTracks.sources,
+                    exceptedSourceIds: options.alternativeTracks.exceptedSources,
+                    exactMatch: options.alternativeTracks.exactMatch,
+                    similarityRange: options.alternativeTracks.similarityRange ? {
+                        high: options.alternativeTracks.similarityRange.high,
+                        low: options.alternativeTracks.similarityRange.low,
+                    } : undefined,
+                } : undefined,
+            });
+
+            if (!stream) {
+                return next();
+            }
+
+            res.status(stream.statusCode);
+
+            for (const [key, value] of Object.entries(stream.headers)) {
+                res.set(key, value);
+            }
+
+            pipe(stream, res, (err) => {
+                if (err) {
+                    return next(err);
+                }
+            });
+        } catch (e) {
+            return next(e);
+        }
     }
 };
