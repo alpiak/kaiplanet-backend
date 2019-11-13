@@ -4,7 +4,7 @@ module.exports = {
             instances: [
                 {
                     host: "kaiplanet.net",
-                    port: 3000,
+                    port: 3001,
                     protocol: "http",
                 },
             ],
@@ -13,7 +13,7 @@ module.exports = {
             instances: [
                 {
                     host: "kaiplanet.net",
-                    port: 3001,
+                    port: 3002,
                     protocol: "http",
                 },
                 {
@@ -37,7 +37,7 @@ module.exports = {
             instances: [
                 {
                     host: "kaiplanet.net",
-                    port: 3002,
+                    port: 3003,
                     protocol: "http",
                 },
             ],

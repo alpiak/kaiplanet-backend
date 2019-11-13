@@ -8,10 +8,15 @@ module.exports = () => class {
             return this._quality;
         }
 
+        get cached() {
+            return this._cached;
+        }
+
         _urls;
         _quality;
+        _cached;
 
-        constructor(urls, quality = 0) {
+        constructor(urls, { quality = 0, cached = false } = {}) {
             if (Array.isArray(urls) && urls.filter((url) => url).length) {
                 this._urls = urls.filter((url) => url);
             } else {
@@ -19,6 +24,7 @@ module.exports = () => class {
             }
 
             this._quality = quality;
+            this._cached = cached;
         }
 
     };

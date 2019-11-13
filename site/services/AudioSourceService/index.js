@@ -97,6 +97,11 @@ module.exports = (env = "development") => {
 
                 try {
                     await this._cacheTrackLists();
+                } catch (e) {
+                    console.log(e);
+                }
+
+                try {
                     await this._removeOutdatedCache();
                 } catch (e) {
                     console.log(e);
@@ -132,6 +137,7 @@ module.exports = (env = "development") => {
                 playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
+                    cached: playbackSource.cached,
                 })),
             };
         }
@@ -205,6 +211,7 @@ module.exports = (env = "development") => {
                         playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
                             urls: playbackSource.urls,
                             quality: playbackSource.quality,
+                            cached: playbackSource.cached,
                         })),
 
                         similarity: Math.min(rating + artistsSimilarity, 1),
@@ -311,7 +318,10 @@ module.exports = (env = "development") => {
                         throw new Error("No doc cached.");
                     }
 
-                    return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, playbackSources));
+                    return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls, {
+                        quality: playbackSource.quality,
+                        cached: true,
+                    }))));
                 } catch (e) {
                     console.log(e);
 
@@ -336,6 +346,7 @@ module.exports = (env = "development") => {
                 playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
+                    cached: playbackSource.cached,
                 })),
             }));
         }
@@ -390,6 +401,7 @@ module.exports = (env = "development") => {
                                 playbackSources: recommendedTrack.playbackSources && recommendedTrack.playbackSources.map((playbackSource) => ({
                                     urls: playbackSource.urls,
                                     quality: playbackSource.quality,
+                                    cached: playbackSource.cached,
                                 })),
                             };
                         }
@@ -447,6 +459,7 @@ module.exports = (env = "development") => {
                             playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
                                 urls: playbackSource.urls,
                                 quality: playbackSource.quality,
+                                cached: playbackSource.cached,
                             })),
                         };
                     }
@@ -525,6 +538,7 @@ module.exports = (env = "development") => {
                         playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
                             urls: playbackSource.urls,
                             quality: playbackSource.quality,
+                            cached: playbackSource.cached,
                         })),
 
                         similarity,
@@ -716,6 +730,16 @@ module.exports = (env = "development") => {
                 for (const list of lists) {
                     const tracks = await this.getList(list.id, list.source.id);
 
+                    for (const track of tracks) {
+                        if (!track.playbackSources || !track.playbackSources.length) {
+                            try {
+                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id);
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        }
+                    }
+
                     try {
                         await TrackListModel.createOrUpdate({
                             id: list.id,
@@ -743,6 +767,16 @@ module.exports = (env = "development") => {
                 for (const list of lists) {
                     const tracks = await this.getList(list.id, source.id);
 
+                    for (const track of tracks) {
+                        if (!track.playbackSources || !track.playbackSources.length) {
+                            try {
+                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id);
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        }
+                    }
+
                     try {
                         await TrackListModel.createOrUpdate({
                             id: list.id,
@@ -769,9 +803,8 @@ module.exports = (env = "development") => {
 
                 await TrackListModel.deleteMany({
                     updatedOn: {
-                        $gte: new Date(date.getTime() - config.caching.expiresAfter),
-                        $lt: date,
-                    }
+                        $lt: new Date(date.getTime() - config.caching.expiresAfter),
+                    },
                 }).exec();
             } catch (e) {
                 console.log(e);

@@ -113,7 +113,7 @@ module.exports = (env = "development") => {
         _scheduleJobRunning = false;
 
         constructor() {
-            schedule.scheduleJob(`*/${ProxyService.PERIOD_TO_REFRESH_PROXY_LIST} * * * *`, async () => {
+            schedule.scheduleJob(`*/${ProxyService.PERIOD_TO_REFRESH_PROXY_LIST} * * * * ?`, async () => {
                 if (this._scheduleJobRunning) {
                     return;
                 }
