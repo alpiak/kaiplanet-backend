@@ -64,6 +64,6 @@ module.exports = {
         queueMaxSize: 128,
         coolDownTime: 10000,
         timeout: 1000 * 60 * 2,
-        expiresAfter: 1000 * 60 * 60 * 24 * 3,
+        expiresAfter: 1000 * 60 * 60 * 24 * 30,
     },
 };

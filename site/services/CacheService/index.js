@@ -86,55 +86,11 @@ class GetByteLength extends Transform {
     }
 }
 
-class OmitOverSizedContent extends Transform {
-    maxSize;
-    callback;
-    byteLength = 0;
-    overSized = false;
-    callbackCalled = false;
-
-    constructor(options) {
-        super(options);
-
-        this.maxSize = options.maxSize;
-        this.callback = options.callback;
-    }
-
-    _transform(chunk, encoding, end) {
-        this.byteLength += Buffer.byteLength(chunk);
-
-        if (this.byteLength > this.maxSize) {
-            this.overSized = true;
-
-            if (!this.callbackCalled) {
-                this.callbackCalled = true;
-                this.callback(true);
-            }
-            // this.emit("error", new Error("Stream over sized."));
-
-            return end();
-        }
-
-        this.push(chunk);
-
-        end();
-    }
-
-    _flush(end) {
-        if (!this.overSized && !this.callbackCalled) {
-            this.callback(false);
-        }
-
-        end();
-    }
-}
-
 module.exports = (env = "development") => {
     const config = require(`./config/${env}`);
 
     return class CacheService {
         static CACHE_MAX_SIZE = config.cacheMaxSize;
-        static CACHED_ITEM_MAX_SIZE = config.cachedItemMaxSize;
 
         _cache;
         _blobCache;
@@ -148,13 +104,15 @@ module.exports = (env = "development") => {
                 },
 
                 dispose: (key) => {
-                    this._blobCache.del(key);
+                    try {
+                        this._blobCache.del(key);
+                    } catch { }
                 },
 
                 noDisposeOnSet: true,
             });
 
-            const folder = fs.mkdtempSync(path.join(os.tmpdir(), '.cache'));
+            const folder = fs.mkdtempSync(path.join(os.tmpdir(), ".cache"));
             const blobStore = FSBlobStore(folder);
 
             this._blobCache = cloudCache(blobStore);
@@ -163,60 +121,46 @@ module.exports = (env = "development") => {
         async cache(key, originRes) {
             const cachePromise = new Promise((resolve, reject) => {
                 let byteLength;
-                let overSized;
 
                 pipe(originRes, new GetByteLength({
                     callback: (contentByteLength) => {
                         byteLength = contentByteLength;
-                    },
-                }), new OmitOverSizedContent({
-                    maxSize: CacheService.CACHED_ITEM_MAX_SIZE,
-
-                    callback: (contentOverSized) => {
-                        overSized = contentOverSized;
                     },
                 }), this._cache.set(key), (err) => {
                     if (err) {
                         reject(err);
                     }
 
-                    resolve({ byteLength, overSized });
-                });
-            });
-
-            const blobCachePromise = new Promise((resolve, reject) => {
-                pipe(originRes, this._blobCache.setStream(key), (err) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    resolve();
+                    resolve(byteLength);
                 });
             });
 
             try {
-                const [{ byteLength, overSized }] = await Promise.all([cachePromise, blobCachePromise]);
+                const byteLength = await cachePromise;
+                const cacheStream = this._cache.get(key);
+
+                this._cache.del(key);
 
                 this._cache.setMetadata(key, {
                     statusCode: originRes.statusCode,
                     headers: originRes.headers,
                     byteLength: byteLength || +originRes.headers["content-length"],
-                    overSized,
                 });
 
-                if (!overSized) {
-                    this._blobCache.del(key);
-                }
+                pipe(cacheStream, this._blobCache.setStream(key));
             } catch (e) {
                 this._cache.del(key);
-                this._blobCache.del(key);
+
+                try {
+                    this._blobCache.del(key);
+                } catch { }
 
                 throw e;
             }
         }
 
         exists(key) {
-            return this._cache.getMetadata(key) && this._cache.exists(key);
+            return this._cache.exists(key);
         }
 
         get(key, { start, end } = {}) {
@@ -227,9 +171,30 @@ module.exports = (env = "development") => {
                 throw cacheNotExistingError;
             }
 
-            const { statusCode, headers, overSized } = metadata;
+            const { statusCode, headers } = metadata;
 
-            if (overSized) {
+            try {
+                const originRes = (() => {
+                    if (start || end) {
+                        return this._cache.get(key).pipe(new GetContentRange({ start, end }));
+                    }
+
+                    return this._cache.get(key);
+                })();
+
+                originRes.on("error", () => {
+                    this._cache.del(key);
+
+                    try {
+                        this._blobCache.del(key);
+                    } catch { }
+                });
+
+                originRes.statusCode = statusCode;
+                originRes.headers = headers || {};
+
+                return originRes;
+            } catch {
                 const originRes = (() => {
                     if (start || end) {
                         return this._blobCache.getStream(key).pipe(new GetContentRange({ start, end }));
@@ -240,36 +205,17 @@ module.exports = (env = "development") => {
 
                 originRes.on("error", () => {
                     this._cache.del(key);
-                    this._blobCache.del(key);
+
+                    try {
+                        this._blobCache.del(key);
+                    } catch { }
                 });
 
                 originRes.statusCode = statusCode;
-                originRes.headers = headers;
+                originRes.headers = headers || {};
 
                 return originRes;
             }
-
-            if (!this._cache.exists(key)) {
-                throw cacheNotExistingError;
-            }
-
-            const originRes = (() => {
-                if (start || end) {
-                    return this._cache.get(key).pipe(new GetContentRange({ start, end }));
-                }
-
-                return this._cache.get(key);
-            })();
-
-            originRes.on("error", () => {
-                this._cache.del(key);
-                this._blobCache.del(key);
-            });
-
-            originRes.statusCode = statusCode;
-            originRes.headers = headers || {};
-
-            return originRes;
         }
 
         getMetadata(key) {

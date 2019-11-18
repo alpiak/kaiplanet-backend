@@ -430,6 +430,10 @@ module.exports = (env = "development") => {
                     }
                 }));
 
+                if (await recommendedTrackPromise === null) {
+                    return await this.getRecommend(null, sourceIds, { playbackQuality, sourceRating, producerRating });
+                }
+
                 return await recommendedTrackPromise;
             }
 
