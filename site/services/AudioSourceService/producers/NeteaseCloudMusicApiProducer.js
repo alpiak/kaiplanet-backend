@@ -184,7 +184,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     }));
                 }
 
-                return  null;
+                return null;
             })();
 
             if (!tracks || !tracks.length) {

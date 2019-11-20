@@ -58,6 +58,15 @@ module.exports = {
                 },
             ],
         },
+        miguMusicApi: {
+            instances: [
+                {
+                    host: "localhost",
+                    port: 3004,
+                    protocol: "http",
+                }
+            ]
+        },
     },
     assetBaseUrl: "http://kaiplanet.net",
     caching: {

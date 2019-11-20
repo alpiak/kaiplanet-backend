@@ -37,6 +37,7 @@ const schema = new Schema({
                 min: 0,
                 max: 1,
             },
+            statical: Boolean,
         }],
     }],
     updatedOn: Date,

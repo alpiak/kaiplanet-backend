@@ -12,11 +12,16 @@ module.exports = () => class {
             return this._cached;
         }
 
+        get statical() {
+            return this._statical;
+        }
+
         _urls;
         _quality;
+        _statical;
         _cached;
 
-        constructor(urls, { quality = 0, cached = false } = {}) {
+        constructor(urls, { quality = 0, statical = false, cached = false } = {}) {
             if (Array.isArray(urls) && urls.filter((url) => url).length) {
                 this._urls = urls.filter((url) => url);
             } else {
@@ -24,6 +29,7 @@ module.exports = () => class {
             }
 
             this._quality = quality;
+            this._statical = statical;
             this._cached = cached;
         }
 

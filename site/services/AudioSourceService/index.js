@@ -27,10 +27,11 @@ module.exports = (env = "development") => {
     const KugouMusicApiProducer = require("./producers/KugouMusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
     const KuGouMobileProducer = require("./producers/KuGouMobileProducer")({ Artist, Track, List, Source, Producer, config });
     const KuGouMobileCDNProducer = require("./producers/KuGouMobileCDNProducer")({ Artist, Track, TrackList, Source, Producer, config });
+    const MiguMusicApiProducer = require("./producers/MiguMusicApiProducer")({ Artist, Track, TrackList, List, Source, Producer, config });
 
     return class AudioSourceService {
         static QUEUE_MAX_SIZE = config.caching.queueMaxSize;
-        static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, KuGouMobileProducer, NodeSoundCloudProducer, HearthisProducer, KuGouMobileCDNProducer];
+        static Producers = [KaiPlanetProducer, NeteaseCloudMusicApiProducer, MusicInterfaceProducer, KugouMusicApiProducer, MusicApiProducer, KuGouMobileProducer, NodeSoundCloudProducer, HearthisProducer, KuGouMobileCDNProducer, MiguMusicApiProducer];
 
         static getSources() {
             return Source.values().map((source) => ({
@@ -138,6 +139,7 @@ module.exports = (env = "development") => {
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
                     cached: playbackSource.cached,
+                    statical: playbackSource.statical,
                 })),
             };
         }
@@ -212,6 +214,7 @@ module.exports = (env = "development") => {
                             urls: playbackSource.urls,
                             quality: playbackSource.quality,
                             cached: playbackSource.cached,
+                            statical: playbackSource.statical,
                         })),
 
                         similarity: Math.min(rating + artistsSimilarity, 1),
@@ -221,7 +224,7 @@ module.exports = (env = "development") => {
                 .slice(0, limit);
         }
 
-        async getLists(sourceIds, { limit, offset, sourceRating, producerRating } = {}) {
+        async getLists(sourceIds, { limit, offset, sourceRating, producerRating, noCache = false } = {}) {
             if (!Array.isArray(sourceIds) && sourceIds) {
                 const source = Source.fromId(sourceIds);
 
@@ -229,54 +232,7 @@ module.exports = (env = "development") => {
                     return null;
                 }
 
-                try {
-                    const docs = await TrackListModel.find({ sourceId: source.id }, "id name").exec();
-
-                    if (!docs || !docs.length) {
-                        throw new Error("No doc cached.");
-                    }
-
-                    return docs.map((doc) => ({
-                        id: doc.id,
-                        name: doc.name,
-                    }));
-                } catch (e) {
-                    console.log(e);
-
-                    const lists = await source.getLists({ limit, offset, producerRating });
-
-                    if (!lists) {
-                        return null;
-                    }
-
-                    (async () => {
-                        try {
-                            await this._cacheTrackLists(lists);
-                        } catch (e) {
-                            console.log(e);
-                        }
-                    })();
-
-                    return lists.map((list) => ({
-                        id: list.id,
-                        name: list.name,
-                    }));
-                }
-            }
-
-            const sources = ((sourceIds) => {
-                if (!sourceIds || !sourceIds.length) {
-                    return Source.values();
-                }
-
-                return sourceIds.map((sourceId) => Source.fromId(sourceId));
-            })(sourceIds);
-
-            return await Promise.all(sources.map(async (source) => {
-                    if (!source) {
-                        return null;
-                    }
-
+                if (!noCache) {
                     try {
                         const docs = await TrackListModel.find({ sourceId: source.id }, "id name").exec();
 
@@ -290,43 +246,98 @@ module.exports = (env = "development") => {
                         }));
                     } catch (e) {
                         console.log(e);
+                    }
+                }
 
-                        const lists = await source.getLists({ limit, offset, producerRating });
+                const lists = await source.getLists({ limit, offset, producerRating });
 
-                        if (!lists) {
-                            return null;
+                if (!lists) {
+                    return null;
+                }
+
+                (async () => {
+                    try {
+                        await this._cacheTrackLists(lists);
+                    } catch (e) {
+                        console.log(e);
+                    }
+                })();
+
+                return lists.map((list) => ({
+                    id: list.id,
+                    name: list.name,
+                }));
+            }
+
+            const sources = ((sourceIds) => {
+                if (!sourceIds || !sourceIds.length) {
+                    return Source.values();
+                }
+
+                return sourceIds.map((sourceId) => Source.fromId(sourceId));
+            })(sourceIds);
+
+            return await Promise.all(sources.map(async (source) => {
+                if (!source) {
+                    return null;
+                }
+
+                if (!noCache) {
+                    try {
+                        const docs = await TrackListModel.find({ sourceId: source.id }, "id name").exec();
+
+                        if (!docs || !docs.length) {
+                            throw new Error("No doc cached.");
                         }
 
-                        this._cacheTrackLists(lists);
-
-                        return lists.map((list) => ({
-                            id: list.id,
-                            name: list.name,
+                        return docs.map((doc) => ({
+                            id: doc.id,
+                            name: doc.name,
                         }));
+                    } catch (e) {
+                        console.log(e);
                     }
+                }
+
+                const lists = await source.getLists({ limit, offset, producerRating });
+
+                if (!lists) {
+                    return null;
+                }
+
+                this._cacheTrackLists(lists);
+
+                return lists.map((list) => ({
+                    id: list.id,
+                    name: list.name,
                 }));
+            }));
         };
 
-        async getList(id, sourceId, { playbackQuality = 0, limit, offset, sourceRating, producerRating } = {}) {
+        async getList(id, sourceId, { playbackQuality = 0, limit, offset, sourceRating, producerRating, noCache = false } = {}) {
             const source = Source.fromId(sourceId);
 
             const tracks = await (async () => {
-                try {
-                    const doc = await TrackListModel.findOne({ id, sourceId }, "tracks").exec();
+                if (!noCache) {
+                    try {
+                        const doc = await TrackListModel.findOne({ id, sourceId }, "tracks").exec();
 
-                    if (!doc || !doc.length) {
-                        throw new Error("No doc cached.");
+                        if (!doc || !doc.length) {
+                            throw new Error("No doc cached.");
+                        }
+
+                        return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls, {
+                            quality: playbackSource.quality,
+                            statical: playbackSource.statical,
+                            cached: true,
+                        }))));
+                    } catch (e) {
+                        console.log(e);
                     }
-
-                    return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls, {
-                        quality: playbackSource.quality,
-                        cached: true,
-                    }))));
-                } catch (e) {
-                    console.log(e);
-
-                    return await source.getList(id, { playbackQuality, limit, offset, producerRating });
                 }
+
+                return await source.getList(id, { playbackQuality, limit, offset, producerRating });
+
             })();
 
             if (!tracks) {
@@ -347,6 +358,7 @@ module.exports = (env = "development") => {
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
                     cached: playbackSource.cached,
+                    statical: playbackSource.statical,
                 })),
             }));
         }
@@ -358,6 +370,8 @@ module.exports = (env = "development") => {
                 return (await source.getPlaybackSources(id, { producerRating, playbackQuality })).map((playbackSource) => ({
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
+                    cached: playbackSource.cached,
+                    statical: playbackSource.statical,
                 }));
             } else {
                 return null;
@@ -402,6 +416,7 @@ module.exports = (env = "development") => {
                                     urls: playbackSource.urls,
                                     quality: playbackSource.quality,
                                     cached: playbackSource.cached,
+                                    statical: playbackSource.statical,
                                 })),
                             };
                         }
@@ -464,6 +479,7 @@ module.exports = (env = "development") => {
                                 urls: playbackSource.urls,
                                 quality: playbackSource.quality,
                                 cached: playbackSource.cached,
+                                statical: playbackSource.statical,
                             })),
                         };
                     }
@@ -522,13 +538,18 @@ module.exports = (env = "development") => {
                         return null;
                     }
 
-                    const similarityRangeValid = similarityRange
-                        && typeof similarityRange.high !== "undefined"
-                        && typeof similarityRange.low !== "undefined"
-                        && +similarityRange.high >= +similarityRange.low;
+                    if (similarityRange) {
+                        if (typeof similarityRange.high !== "undefined" && similarity > similarityRange.high) {
+                            return null;
+                        }
 
-                    if (similarityRangeValid && similarity > similarityRange.high || similarity < similarityRange.low) {
-                        return null;
+                        if (typeof similarityRange.low !== "undefined" && similarity < similarityRange.low) {
+                            return null;
+                        }
+
+                        if (typeof similarityRange.high !== "undefined" && typeof similarityRange.low !== "undefined" && +similarityRange.high < +similarityRange.low) {
+                            return null;
+                        }
                     }
 
                     return {
@@ -543,6 +564,7 @@ module.exports = (env = "development") => {
                             urls: playbackSource.urls,
                             quality: playbackSource.quality,
                             cached: playbackSource.cached,
+                            statical: playbackSource.statical,
                         })),
 
                         similarity,
@@ -732,7 +754,7 @@ module.exports = (env = "development") => {
         async _cacheTrackLists(lists) {
             if (lists && Array.isArray(lists) && lists[0] instanceof List) {
                 for (const list of lists) {
-                    const tracks = await this.getList(list.id, list.source.id);
+                    const tracks = await this.getList(list.id, list.source.id, { noCache: true });
 
                     for (const track of tracks) {
                         if (!track.playbackSources || !track.playbackSources.length) {
@@ -741,6 +763,14 @@ module.exports = (env = "development") => {
                             } catch (e) {
                                 console.log(e);
                             }
+                        }
+
+                        if (track.playbackSources && track.playbackSources.length) {
+                            track.playbackSources = track.playbackSources.filter((playbackSource) => playbackSource.statical);
+                        }
+
+                        if (!track.playbackSources || !track.playbackSources.length) {
+                            track.playbackSources = undefined;
                         }
                     }
 
@@ -766,15 +796,15 @@ module.exports = (env = "development") => {
             const sources = AudioSourceService.getSources();
 
             for (const source of sources) {
-                const lists = await this.getLists(source.id);
+                const lists = await this.getLists(source.id, { noCache: true });
 
                 for (const list of lists) {
-                    const tracks = await this.getList(list.id, source.id);
+                    const tracks = await this.getList(list.id, source.id, { noCache: true });
 
                     for (const track of tracks) {
                         if (!track.playbackSources || !track.playbackSources.length) {
                             try {
-                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id);
+                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id) || undefined;
                             } catch (e) {
                                 console.log(e);
                             }
