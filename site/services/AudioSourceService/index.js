@@ -322,22 +322,21 @@ module.exports = (env = "development") => {
                     try {
                         const doc = await TrackListModel.findOne({ id, sourceId }, "tracks").exec();
 
-                        if (!doc || !doc.length) {
-                            throw new Error("No doc cached.");
+                        if (!doc || !doc.tracks || !doc.tracks.length) {
+                            throw new Error("No track cached.");
                         }
 
-                        return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls, {
+                        return doc.tracks.map(({ id, name, duration, artists, picture, playbackSources }) => new Track(id, name, duration, artists, picture, source, (playbackSources && playbackSources.length && playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls, {
                             quality: playbackSource.quality,
                             statical: playbackSource.statical,
                             cached: true,
-                        }))));
+                        }))) || undefined));
                     } catch (e) {
                         console.log(e);
                     }
                 }
 
                 return await source.getList(id, { playbackQuality, limit, offset, producerRating });
-
             })();
 
             if (!tracks) {
@@ -491,7 +490,7 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating } = {}) {
+        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedIds = [], exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating, timeout } = {}) {
             if (!name || !artistNames) {
                 return null;
             }
@@ -506,33 +505,37 @@ module.exports = (env = "development") => {
 
             const tracks = (await Promise.all(sources.map(async (source) => {
                 try {
-                    return await source.getAlternativeTracks(new Track(undefined, name, undefined, artistNames.map(artistName => new Artist(artistName))), {
+                    return await Promise.race([source.getAlternativeTracks(new Track(undefined, name, undefined, artistNames.map(artistName => new Artist(artistName))), {
                         playbackQuality,
                         limit,
                         producerRating,
-                    });
+                    })].concat(timeout ? new Promise((resolve) => setTimeout(() => resolve(null), timeout)) : []));
                 } catch (e) {
                     console.log(e);
 
                     return null;
                 }
             })))
-                .filter((matchedTracks) => matchedTracks)
-                .flat();
+                .flat()
+                .filter((matchedTrack) => matchedTrack)
+                .filter((matchedTrack) => !exceptedIds.includes(matchedTrack.id));
 
             if (!tracks.length) {
                 return [];
             }
 
-            return stringSimilarity.findBestMatch(name, tracks.map(({name}) => name)).ratings
+            const parenRegEx = /(:?\(|\uff08)(:?\S|\s)+?(:?\)|\uff09)/g;
+            const blankCharRegEx = /\s+/g;
+
+            return stringSimilarity.findBestMatch(name.replace(parenRegEx, "").replace(blankCharRegEx, ""), tracks.map(({ name }) => name.replace(parenRegEx, "").replace(blankCharRegEx, ""))).ratings
                 .map(({ rating }, i) => {
                     const track = tracks[i];
 
                     const artistsSimilarity = track.artists
-                        .map((artist) => stringSimilarity.findBestMatch(artist.name, artistNames).bestMatch.rating)
+                        .map((artist) => stringSimilarity.findBestMatch(artist.name.replace(parenRegEx, "").replace(blankCharRegEx, ""), artistNames.map((artistName) => artistName.replace(parenRegEx, "").replace(blankCharRegEx, ""))).bestMatch.rating)
                         .reduce((total, rating) => total + rating, 0) / track.artists.length;
 
-                    const similarity = rating * .5 + artistsSimilarity * .5;
+                    const similarity = rating * .6 + artistsSimilarity * .4;
 
                     if (exactMatch && similarity < 1) {
                         return null;
@@ -754,37 +757,36 @@ module.exports = (env = "development") => {
         async _cacheTrackLists(lists) {
             if (lists && Array.isArray(lists) && lists[0] instanceof List) {
                 for (const list of lists) {
-                    const tracks = await this.getList(list.id, list.source.id, { noCache: true });
+                    try {
+                        const tracks = await this.getList(list.id, list.source.id, { noCache: true });
 
-                    for (const track of tracks) {
-                        if (!track.playbackSources || !track.playbackSources.length) {
-                            try {
-                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id);
-                            } catch (e) {
-                                console.log(e);
+                        for (const track of tracks) {
+                            if (!track.playbackSources || !track.playbackSources.length) {
+                                try {
+                                    track.playbackSources = await this.getPlaybackSources(track.id, track.source.id) || undefined;
+                                } catch (e) {
+                                    console.log(e);
+                                }
+                            }
+
+                            if (!track.playbackSources || !track.playbackSources.length) {
+                                track.playbackSources = undefined;
                             }
                         }
-
-                        if (track.playbackSources && track.playbackSources.length) {
-                            track.playbackSources = track.playbackSources.filter((playbackSource) => playbackSource.statical);
+                        try {
+                            await TrackListModel.createOrUpdate({
+                                id: list.id,
+                                sourceId: list.source.id,
+                            }, {
+                                id: list.id,
+                                sourceId: list.source.id,
+                                name: list.name,
+                                tracks: tracks,
+                                updatedOn: new Date(),
+                            });
+                        } catch (e) {
+                            console.log(e);
                         }
-
-                        if (!track.playbackSources || !track.playbackSources.length) {
-                            track.playbackSources = undefined;
-                        }
-                    }
-
-                    try {
-                        await TrackListModel.createOrUpdate({
-                            id: list.id,
-                            sourceId: list.source.id,
-                        }, {
-                            id: list.id,
-                            sourceId: list.source.id,
-                            name: list.name,
-                            tracks: tracks,
-                            updatedOn: new Date(),
-                        });
                     } catch (e) {
                         console.log(e);
                     }
@@ -796,37 +798,49 @@ module.exports = (env = "development") => {
             const sources = AudioSourceService.getSources();
 
             for (const source of sources) {
-                const lists = await this.getLists(source.id, { noCache: true });
+                try {
+                    const lists = await this.getLists(source.id, { noCache: true });
 
-                for (const list of lists) {
-                    const tracks = await this.getList(list.id, source.id, { noCache: true });
+                    for (const list of lists) {
+                        try {
+                            const tracks = await this.getList(list.id, source.id, { noCache: true });
 
-                    for (const track of tracks) {
-                        if (!track.playbackSources || !track.playbackSources.length) {
+                            for (const track of tracks) {
+                                if (!track.playbackSources || !track.playbackSources.length) {
+                                    try {
+                                        track.playbackSources = await this.getPlaybackSources(track.id, track.source.id);
+                                    } catch (e) {
+                                        console.log(e);
+                                    }
+                                }
+
+                                if (!track.playbackSources || !track.playbackSources.length) {
+                                    track.playbackSources = undefined;
+                                }
+                            }
+
                             try {
-                                track.playbackSources = await this.getPlaybackSources(track.id, track.source.id) || undefined;
+                                await TrackListModel.createOrUpdate({
+                                    id: list.id,
+                                    sourceId: source.id,
+                                }, {
+                                    id: list.id,
+                                    sourceId: source.id,
+                                    name: list.name,
+                                    tracks: tracks,
+                                    updatedOn: new Date(),
+                                });
                             } catch (e) {
                                 console.log(e);
                             }
+
+                            await new Promise((resolve) => setTimeout(resolve, config.caching.coolDownTime));
+                        } catch (e) {
+                            console.log(e);
                         }
                     }
-
-                    try {
-                        await TrackListModel.createOrUpdate({
-                            id: list.id,
-                            sourceId: source.id,
-                        }, {
-                            id: list.id,
-                            sourceId: source.id,
-                            name: list.name,
-                            tracks: tracks,
-                            updatedOn: new Date(),
-                        });
-                    } catch (e) {
-                        console.log(e);
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, config.caching.coolDownTime));
+                } catch (e) {
+                    console.log(e);
                 }
             }
         }

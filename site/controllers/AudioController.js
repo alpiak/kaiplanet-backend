@@ -180,16 +180,19 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {String} name The song name
      * @apiParam {String[]} artists List of artist names
      * @apiParam {String[]} [sources] Optional Sources to search by
-     * @apiParam {String[]} [exceptedSources] Optional Sources excepted for search
+     * @apiParam {String[]} [exceptedTracks] Optional IDs of the tracks to except from the result.
+     * @apiParam {String[]} [exceptedSources] Optional IDs of the sources excepted for search.
      * @apiParam {Boolean} [exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only
      * @apiParam {Object} [similarityRange] Optional Similarity range to filter the results
      * @apiParam {Number{0-1}} [similarityRange.high] Optional The highest similarity
      * @apiParam {Number{0-1}} [similarityRange.low] Optional The lowest similarity
      * @apiParam {Number{0-1}} [playbackQuality=0] Expected playback quality
+     * @apiParam {Number} [timeout] Optional Timeout for each call in milliseconds
      */
     async getAlternativeTracks(req, res) {
         res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, {
             sourceIds: reqBody.sources,
+            exceptedIds: reqBody.exceptedTracks,
             exceptedSourceIds: reqBody.exceptedSources,
             similarityRange: reqBody.similarityRange ? {
                 high: reqBody.similarityRange.high,
@@ -197,6 +200,7 @@ module.exports = ({ AudioSourceService }) => class {
             } : undefined,
             exactMatch: reqBody.exactMatch || false,
             playbackQuality: reqBody.playbackQuality || 0,
+            timeout: reqBody.timeout,
         })));
     }
 

@@ -26,7 +26,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             } catch (e) {
                 throw e;
             }
-        })()).songList || [];
+        })()).songList.filter((songData) => songData.songMid) || [];
 
         const getPicture = (track) => this._getPicture(track);
 
@@ -55,6 +55,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         try {
             return (await this._musicInterface.getSongUrllist([id]))
                 .filter((url) => url)
+                .filter((url) => url !== "http://isure.stream.qqmusic.qq.com//")
                 .map((url) => new Track.PlaybackSource([url], 0));
         } catch (e) {
             return [];

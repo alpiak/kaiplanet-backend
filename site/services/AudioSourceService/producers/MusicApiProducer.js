@@ -41,14 +41,17 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
     async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         try {
             const url = (await musicAPI.getSong(source, { id, br: 128000 })).url;
+
             return url ? [new Track.PlaybackSource([url], 0)] : [];
         } catch (e) {
+            console.log(e);
+
             return [];
         }
     }
 
     // async getRecommend(track, source, { playbackQuality = 0 } = {}) {
-    //     const tracks = await (() => {
+    //     const tracks = (() => {
     //         if (source === Source.netEase) {
     //             return (async () => {
     //                 const res = await (() => {

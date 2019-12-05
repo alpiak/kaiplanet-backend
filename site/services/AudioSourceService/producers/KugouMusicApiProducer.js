@@ -88,7 +88,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
     }
 
     async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
-        return (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, { playbackQuality, limit })).values();
+        return (await source.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), { playbackQuality, limit })).values();
     }
 
     async getTrack(id, source, { playbackQuality = 0 } = {}) {
