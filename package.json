@@ -21,12 +21,13 @@
   "dependencies": {
     "ali-oss": "^4.10.1",
     "apicache": "^1.2.0",
-    "body-parser": "^1.17.2",
+    "body-parser": "^1.19.0",
     "cloud-cache": "^1.0.3",
     "co": "^4.6.0",
     "compression": "^1.7.1",
-    "express": "^4.15.2",
-    "express-session": "^1.15.4",
+    "content-range": "^1.1.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.0",
     "express-sessions": "^1.0.6",
     "formidable": "^1.1.1",
     "fs-blob-store": "^5.2.1",
@@ -48,6 +49,6 @@
     "string-similarity": "^3.0.0"
   },
   "devDependencies": {
-    "http-proxy-middleware": "^0.17.4"
+    "http-proxy-middleware": "^0.20.0"
   }
 }

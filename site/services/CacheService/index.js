@@ -4,6 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const https = require("https");
 const zlib = require("zlib");
+const crypto = require("crypto");
 const { Transform } = require("stream");
 
 const ProxyAgent = require("proxy-agent");
@@ -118,7 +119,17 @@ module.exports = (env = "development") => {
             this._blobCache = cloudCache(blobStore);
         }
 
+        static _getHashCode(key) {
+            const hash = crypto.createHash("md5");
+
+            hash.update(key);
+
+            return hash.digest("hex");
+        }
+
         async cache(key, originRes) {
+            const hashedKey = CacheService._getHashCode(key);
+
             const cachePromise = new Promise((resolve, reject) => {
                 let byteLength;
 
@@ -126,7 +137,7 @@ module.exports = (env = "development") => {
                     callback: (contentByteLength) => {
                         byteLength = contentByteLength;
                     },
-                }), this._cache.set(key), (err) => {
+                }), this._cache.set(hashedKey), (err) => {
                     if (err) {
                         reject(err);
                     }
@@ -137,35 +148,38 @@ module.exports = (env = "development") => {
 
             try {
                 const byteLength = await cachePromise;
-                const cacheStream = this._cache.get(key);
+                const cacheStream = this._cache.get(hashedKey);
 
-                this._cache.del(key);
+                this._cache.del(hashedKey);
 
-                this._cache.setMetadata(key, {
+                this._cache.setMetadata(hashedKey, {
                     statusCode: originRes.statusCode,
                     headers: originRes.headers,
                     byteLength: byteLength || +originRes.headers["content-length"],
                 });
 
-                pipe(cacheStream, this._blobCache.setStream(key));
-            } catch (e) {
-                this._cache.del(key);
+                pipe(cacheStream, this._blobCache.setStream(hashedKey), (err) => {
+                    if (err) {
+                        console.log(err);
 
-                try {
-                    this._blobCache.del(key);
-                } catch { }
+                        this._delete(hashedKey);
+                    }
+                });
+            } catch (e) {
+                this._delete(hashedKey);
 
                 throw e;
             }
         }
 
         exists(key) {
-            return this._cache.exists(key);
+            return this._cache.exists(CacheService._getHashCode(key));
         }
 
         get(key, { start, end } = {}) {
             const cacheNotExistingError = new Error(`Cache is not existing for key ${key}.`);
-            const metadata = this._cache.getMetadata(key);
+            const hashedKey = CacheService._getHashCode(key);
+            const metadata = this._cache.getMetadata(hashedKey);
 
             if (!metadata) {
                 throw cacheNotExistingError;
@@ -176,18 +190,14 @@ module.exports = (env = "development") => {
             try {
                 const originRes = (() => {
                     if (start || end) {
-                        return this._cache.get(key).pipe(new GetContentRange({ start, end }));
+                        return this._cache.get(hashedKey).pipe(new GetContentRange({ start, end }));
                     }
 
-                    return this._cache.get(key);
+                    return this._cache.get(hashedKey);
                 })();
 
                 originRes.on("error", () => {
-                    this._cache.del(key);
-
-                    try {
-                        this._blobCache.del(key);
-                    } catch { }
+                    this._delete(hashedKey);
                 });
 
                 originRes.statusCode = statusCode;
@@ -197,18 +207,14 @@ module.exports = (env = "development") => {
             } catch {
                 const originRes = (() => {
                     if (start || end) {
-                        return this._blobCache.getStream(key).pipe(new GetContentRange({ start, end }));
+                        return this._blobCache.getStream(hashedKey).pipe(new GetContentRange({ start, end }));
                     }
 
-                    return this._blobCache.getStream(key);
+                    return this._blobCache.getStream(hashedKey);
                 })();
 
                 originRes.on("error", () => {
-                    this._cache.del(key);
-
-                    try {
-                        this._blobCache.del(key);
-                    } catch { }
+                    this._delete(hashedKey);
                 });
 
                 originRes.statusCode = statusCode;
@@ -220,13 +226,20 @@ module.exports = (env = "development") => {
 
         getMetadata(key) {
             const cacheNotExistingError = new Error(`Cache is not existing for key ${key}.`);
-            const metadata = this._cache.getMetadata(key);
+            const hashedKey = CacheService._getHashCode(key);
+            const metadata = this._cache.getMetadata(hashedKey);
 
             if (!metadata) {
                 throw cacheNotExistingError;
             }
 
             return metadata;
+        }
+
+        delete(key) {
+            const hashedKey = CacheService._getHashCode(key);
+
+            this._delete(hashedKey);
         }
 
         sendRequest(url, method, { headers = {}, body, proxy, timeout } = {}) {
@@ -280,6 +293,16 @@ module.exports = (env = "development") => {
 
                 targetReq.end();
             });
+        }
+
+        _delete(hashedKey) {
+            this._cache.del(hashedKey);
+
+            try {
+                this._blobCache.del(hashedKey);
+            } catch(e) {
+                console.log(e);
+            }
         }
     }
 };

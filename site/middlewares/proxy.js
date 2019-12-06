@@ -7,6 +7,7 @@ const dns = require("dns");
 
 const ProxyAgent = require("proxy-agent");
 const { pipe } = require("mississippi");
+const contentRange = require("content-range");
 
 const REQUEST_TIMEOUT = 1000 * 60 * 2;
 const REF_REGEXP = '(?:href|src|action)="\\s*((?:\\S|\\s)+?)"';
@@ -214,11 +215,24 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
             'referer': `${targetUrl.protocol}//${targetUrl.host}${(targetUrl.port && (':' + targetUrl.port)) || ''}/`,
         };
 
+        const reqsInRace = [];
+
         let raceEnded = false;
+        let aborted = false;
+
+        req.on("close", () => {
+            aborted = true;
+
+            reqsInRace.forEach((req) => req.abort());
+        });
 
         const originRes = await (async () => {
             if (cacheService.exists(targetUrl.href)) {
-                return cacheService.get(targetUrl.href);
+                try {
+                    return cacheService.get(targetUrl.href);
+                } catch (e) {
+                    console.log(e);
+                }
             }
 
             let proxies;
@@ -249,12 +263,20 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                 }
 
                 const targetReq = client.request(options, (res) => {
+                    if (raceEnded) {
+                        return targetReq.abort();
+                    }
+
                     resolve(res);
 
-                    if (raceEnded) {
-                        targetReq.abort();
+                    for (const reqInRace of reqsInRace) {
+                        if (reqInRace !== targetReq) {
+                            reqInRace.abort();
+                        }
                     }
                 });
+
+                reqsInRace.push(targetReq);
 
                 targetReq.on("error", (e) => {
                     failCount++;
@@ -273,7 +295,11 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     }
                 });
 
-                req.pipe(targetReq);
+                pipe(req, targetReq, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
+                });
             });
 
             return await Promise.race([sendRequest(), Promise.race(await (async () => {
@@ -299,15 +325,45 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     }
                 })(targetUrl);
 
+                if (aborted) {
+                    return [];
+                }
+
                 return proxies.map(sendRequest);
             })())]);
         })();
 
         raceEnded = true;
 
+        let deleteCacheTimeout;
+
         if (!cacheService.exists(targetUrl.href) && originRes.statusCode >= 200 && originRes.statusCode < 300) {
-            if (!req.headers["range"]) {
+            const fullData = (() => {
+                const contentRangeHeader = originRes.headers["content-range"];
+
+                if (originRes.statusCode === 206 && contentRangeHeader) {
+                    const parts = contentRange.parse(contentRangeHeader);
+
+                    if (parts) {
+                        if (parts.first === 0 && parts.length && parts.last === parts.length - 1) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                return true;
+            })();
+
+            if (fullData) {
                 (async () => {
+                    req.on("close", () => {
+                        deleteCacheTimeout = setTimeout(() => {
+                            cacheService.delete(targetUrl.href);
+                        }, 0);
+                    });
+
                     try {
                         await cacheService.cache(targetUrl.href, originRes);
                     } catch (e) {
@@ -315,17 +371,17 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     }
                 })();
             } else {
-                const cacheReqHeaders = { ...reqHeaders };
-
-                delete cacheReqHeaders["range"];
-
-                (async () => {
-                    try {
-                        await cacheService.cache(targetUrl.href, await cacheService.sendRequest(targetUrl, req.method, { headers: cacheReqHeaders }));
-                    } catch (e) {
-                        console.log(e);
-                    }
-                })();
+                // const cacheReqHeaders = { ...reqHeaders };
+                //
+                // delete cacheReqHeaders["range"];
+                //
+                // (async () => {
+                //     try {
+                //         await cacheService.cache(targetUrl.href, await cacheService.sendRequest(targetUrl, req.method, { headers: cacheReqHeaders }));
+                //     } catch (e) {
+                //         console.log(e);
+                //     }
+                // })();
             }
         }
 
@@ -376,11 +432,19 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     if (err) {
                         return next(err);
                     }
-                });
+
+                    if (deleteCacheTimeout) {
+                        clearTimeout(deleteCacheTimeout);
+                    }
+            });
             } else {
                 pipe(originRes, res, (err) => {
                     if (err) {
                         return next(err);
+                    }
+
+                    if (deleteCacheTimeout) {
+                        clearTimeout(deleteCacheTimeout);
                     }
                 });
             }
@@ -396,11 +460,19 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                 if (err) {
                     return next(err);
                 }
+
+                if (deleteCacheTimeout) {
+                    clearTimeout(deleteCacheTimeout);
+                }
             });
         } else {
             pipe(originRes, res, (err) => {
                 if (err) {
                     return next(err);
+                }
+
+                if (deleteCacheTimeout) {
+                    clearTimeout(deleteCacheTimeout);
                 }
             });
         }
