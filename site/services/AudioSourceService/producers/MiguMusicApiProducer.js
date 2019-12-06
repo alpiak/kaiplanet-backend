@@ -65,15 +65,15 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                         statical: true,
                     })]) || undefined;
 
-                    if (playbackSources) {
-                        playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
-                            .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
-                            .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
-                                quality: playbackSource.quality,
-                                statical: playbackSource.statical,
-                                cached: playbackSource.cached,
-                            })));
-                    }
+                    // if (playbackSources) {
+                    //     playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
+                    //         .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
+                    //         .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+                    //             quality: playbackSource.quality,
+                    //             statical: playbackSource.statical,
+                    //             cached: playbackSource.cached,
+                    //         })));
+                    // }
 
                     return new Track(track.id, track.title || track.songName.replace(/\((:?\S|\s)+\)/, ""), undefined, [new Artist(track.artist || track.singerName)], track.cover, source, playbackSources);
                 }
@@ -141,20 +141,20 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
             if (tracks) {
                 return tracks.map(({ songData = {} }) => {
-                    const playbackSources = [songData.listenUrl, songData.lisCr].filter((url) => url).map((url) => new Track.PlaybackSource(url, {
+                    const playbackSources = [songData.listenUrl/** , songData.lisCr **/].filter((url) => url).map((url) => new Track.PlaybackSource(url, {
                         quality: 0,
                         statical: true,
                     }));
 
-                    if (playbackSources && playbackSources.length) {
-                        playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
-                            .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
-                            .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
-                                quality: playbackSource.quality,
-                                statical: playbackSource.statical,
-                                cached: playbackSource.cached,
-                            })));
-                    }
+                    // if (playbackSources && playbackSources.length) {
+                    //     playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
+                    //         .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
+                    //         .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+                    //             quality: playbackSource.quality,
+                    //             statical: playbackSource.statical,
+                    //             cached: playbackSource.cached,
+                    //         })));
+                    // }
 
                     return new Track(String(songData.songId), songData.songName, undefined, songData.singerName.map((name) => new Artist(name)), songData.picS, source, playbackSources);
                 });

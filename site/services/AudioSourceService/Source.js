@@ -249,9 +249,25 @@ module.exports = ({ TrackList, config }) => class Source {
             playbackSources.sort((a, b) => b.urls.join("").length - a.urls.join("").length);
         }
 
-        // TODO: remove duplicated entries.
+        const removeDuplicatedPlaybackSources = (playbackSources) => {
+            const output = [];
 
-        return playbackSources;
+            playbackSources.forEach((playbackSource) => {
+                for (const outputPlaybackSource of output) {
+                    for (const url of playbackSource.urls) {
+                        if (outputPlaybackSource.urls.includes(url)) {
+                            return;
+                        }
+                    }
+                }
+
+                output.push(playbackSource);
+            });
+
+            return output;
+        };
+
+        return removeDuplicatedPlaybackSources(playbackSources);
     }
 
     async getLists({ limit, offset, producerRating } = {}) {

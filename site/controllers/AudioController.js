@@ -162,32 +162,40 @@ module.exports = ({ AudioSourceService }) => class {
      * @api {post} /audio/recommend
      *
      * @apiParam {Object} [track]
-     * @apiParam {String} [track.name] Optional Track name
-     * @apiParam {String[]} [track.artists] Optional Artist names
-     * @apiParam {String[]} [sources] Optional Sources to search by
-     * @apiParam {Number{0-1}} [playbackQuality=0] Expected playback quality
+     * @apiParam {String} [track.name] Optional Track name.
+     * @apiParam {String[]} [track.artists] Optional Artist names.
+     * @apiParam {String[]} [sources] Optional Sources to search by.
+     * @apiParam {Number{0-1}} [playbackQuality=0] Expected playback quality.
+     * @apiParam {Boolean} [retrievePlaybackSource=false] Optional Switch to force retrieving playback source or not.
+     * @apiParam {Boolean} [withPlaybackSourceOnly=false] Optional Switch to return tracks with playback source only.
      */
     async getRecommend(req, res) {
         res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getRecommend(reqBody.track ? {
             name: reqBody.track.name,
             artists: reqBody.track.artists,
-        } : null, reqBody.sources, { playbackQuality: reqBody.playbackQuality || 0 })));
+        } : null, reqBody.sources, {
+            playbackQuality: reqBody.playbackQuality || 0,
+            retrievePlaybackSource: reqBody.retrievePlaybackSource || false,
+            withPlaybackSourceOnly: reqBody.withPlaybackSourceOnly || false,
+        })));
     }
 
     /**
      * @api {post} /audio/alttracks
      *
-     * @apiParam {String} name The song name
-     * @apiParam {String[]} artists List of artist names
-     * @apiParam {String[]} [sources] Optional Sources to search by
+     * @apiParam {String} name The song name.
+     * @apiParam {String[]} artists List of artist names.
+     * @apiParam {String[]} [sources] Optional Sources to search by.
      * @apiParam {String[]} [exceptedTracks] Optional IDs of the tracks to except from the result.
      * @apiParam {String[]} [exceptedSources] Optional IDs of the sources excepted for search.
-     * @apiParam {Boolean} [exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only
-     * @apiParam {Object} [similarityRange] Optional Similarity range to filter the results
-     * @apiParam {Number{0-1}} [similarityRange.high] Optional The highest similarity
-     * @apiParam {Number{0-1}} [similarityRange.low] Optional The lowest similarity
-     * @apiParam {Number{0-1}} [playbackQuality=0] Expected playback quality
-     * @apiParam {Number} [timeout] Optional Timeout for each call in milliseconds
+     * @apiParam {Boolean} [exactMatch=false] Optional Switch whether to return the results of which the similarity is 1 only.
+     * @apiParam {Object} [similarityRange] Optional Similarity range to filter the results.
+     * @apiParam {Number{0-1}} [similarityRange.high] Optional The highest similarity.
+     * @apiParam {Number{0-1}} [similarityRange.low] Optional The lowest similarity.
+     * @apiParam {Number{0-1}} [playbackQuality=0] Expected playback quality.
+     * @apiParam {Boolean} [retrievePlaybackSource=false] Optional Switch to force retrieving playback source or not.
+     * @apiParam {Boolean} [withPlaybackSourceOnly=false] Optional Switch to return tracks with playback source only.
+     * @apiParam {Number} [timeout] Optional Timeout for each call in milliseconds.
      */
     async getAlternativeTracks(req, res) {
         res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, {
@@ -200,6 +208,8 @@ module.exports = ({ AudioSourceService }) => class {
             } : undefined,
             exactMatch: reqBody.exactMatch || false,
             playbackQuality: reqBody.playbackQuality || 0,
+            retrievePlaybackSource: reqBody.retrievePlaybackSource || false,
+            withPlaybackSourceOnly: reqBody.withPlaybackSourceOnly || false,
             timeout: reqBody.timeout,
         })));
     }

@@ -118,7 +118,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
 
                     try {
                         return (await this._neteaseCloudMusicApi.getSongURL(id))
-                    .map((track) => track.url)
+                            .map((track) => track.url)
                             .filter((url) => url)
                             .map((url) => new Track.PlaybackSource([url], 0));
                     } catch (e) {
@@ -129,15 +129,21 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 }
             })();
 
-            playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
-                .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
-                .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
-                    quality: playbackSource.quality,
-                    statical: playbackSource.statical,
-                    cached: playbackSource.cached,
-                })));
+            // playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
+            //     .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
+            //     .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+            //         quality: playbackSource.quality,
+            //         statical: playbackSource.statical,
+            //         cached: playbackSource.cached,
+            //     })));
+            //
+            // return playbackSources;
 
-            return playbackSources;
+            return playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+                quality: playbackSource.quality,
+                statical: playbackSource.statical,
+                cached: playbackSource.cached,
+            }));
         }
 
         async getRecommend(track, source, { playbackQuality = 0 }) {

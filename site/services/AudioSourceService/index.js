@@ -377,7 +377,7 @@ module.exports = (env = "development") => {
             }
         }
 
-        async getRecommend(track, sourceIds, { playbackQuality = 0, sourceRating, producerRating } = {}) {
+        async getRecommend(track, sourceIds, { playbackQuality = 0, sourceRating, producerRating, retrievePlaybackSource = false, withPlaybackSourceOnly = false } = {}) {
             const sources = ((sourceIds) => {
                 if (!sourceIds || !sourceIds.length) {
                     return Source.values();
@@ -403,21 +403,38 @@ module.exports = (env = "development") => {
                         })(track);
 
                         if (recommendedTrack) {
-                            return {
-                                id: recommendedTrack.id,
-                                name: recommendedTrack.name,
-                                duration: recommendedTrack.duration,
-                                artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
-                                picture: recommendedTrack.picture,
-                                source: recommendedTrack.source.id,
+                            const playbackSources = await (async () => {
+                                if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
+                                    return recommendedTrack.playbackSources.map((playbackSource) => ({
+                                        urls: playbackSource.urls,
+                                        quality: playbackSource.quality,
+                                        cached: playbackSource.cached,
+                                        statical: playbackSource.statical,
+                                    }));
+                                }
 
-                                playbackSources: recommendedTrack.playbackSources && recommendedTrack.playbackSources.map((playbackSource) => ({
-                                    urls: playbackSource.urls,
-                                    quality: playbackSource.quality,
-                                    cached: playbackSource.cached,
-                                    statical: playbackSource.statical,
-                                })),
-                            };
+                                if (retrievePlaybackSource) {
+                                    try {
+                                        return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
+                                    } catch (e) {
+                                        console.log(e);
+                                    }
+                                }
+
+                                return undefined;
+                            })();
+
+                            if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
+                                return {
+                                    id: recommendedTrack.id,
+                                    name: recommendedTrack.name,
+                                    duration: recommendedTrack.duration,
+                                    artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
+                                    picture: recommendedTrack.picture,
+                                    source: recommendedTrack.source.id,
+                                    playbackSources,
+                                };
+                            }
                         }
 
                         failCount++;
@@ -444,8 +461,8 @@ module.exports = (env = "development") => {
                     }
                 }));
 
-                if (await recommendedTrackPromise === null) {
-                    return await this.getRecommend(null, sourceIds, { playbackQuality, sourceRating, producerRating });
+                if (await recommendedTrackPromise === null && track) {
+                    return await this.getRecommend(null, sourceIds, { playbackQuality, sourceRating, producerRating, retrievePlaybackSource, withPlaybackSourceOnly  });
                 }
 
                 return await recommendedTrackPromise;
@@ -466,21 +483,38 @@ module.exports = (env = "development") => {
                     })(track);
 
                     if (recommendedTrack) {
-                        return {
-                            id: recommendedTrack.id,
-                            name: recommendedTrack.name,
-                            duration: recommendedTrack.duration,
-                            artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
-                            picture: recommendedTrack.picture,
-                            source: recommendedTrack.source.id,
+                        const playbackSources = await (async () => {
+                            if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
+                                return recommendedTrack.playbackSources.map((playbackSource) => ({
+                                    urls: playbackSource.urls,
+                                    quality: playbackSource.quality,
+                                    cached: playbackSource.cached,
+                                    statical: playbackSource.statical,
+                                }));
+                            }
 
-                            playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
-                                urls: playbackSource.urls,
-                                quality: playbackSource.quality,
-                                cached: playbackSource.cached,
-                                statical: playbackSource.statical,
-                            })),
-                        };
+                            if (retrievePlaybackSource) {
+                                try {
+                                    return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
+                                } catch (e) {
+                                    console.log(e);
+                                }
+                            }
+
+                            return undefined;
+                        })();
+
+                        if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
+                            return {
+                                id: recommendedTrack.id,
+                                name: recommendedTrack.name,
+                                duration: recommendedTrack.duration,
+                                artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
+                                picture: recommendedTrack.picture,
+                                source: recommendedTrack.source.id,
+                                playbackSources,
+                            };
+                        }
                     }
                 } catch (e) {
                     console.log(e);
@@ -490,7 +524,7 @@ module.exports = (env = "development") => {
             return null;
         }
 
-        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedIds = [], exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating, timeout } = {}) {
+        async getAlternativeTracks(name, artistNames, { playbackQuality = 0, limit = 10, offset, sourceIds, exceptedIds = [], exceptedSourceIds = [], similarityRange, exactMatch = false, sourceRating, producerRating, retrievePlaybackSource = false, withPlaybackSourceOnly = false, timeout } = {}) {
             if (!name || !artistNames) {
                 return null;
             }
@@ -524,15 +558,19 @@ module.exports = (env = "development") => {
                 return [];
             }
 
-            const parenRegEx = /(:?\(|\uff08)(:?\S|\s)+?(:?\)|\uff09)/g;
-            const blankCharRegEx = /\s+/g;
+            const fixName = (text) => {
+                const parenRegEx = /(:?\(|\uff08)(:?\S|\s)+?(:?\)|\uff09)/g;
+                const blankCharRegEx = /\s+/g;
 
-            return stringSimilarity.findBestMatch(name.replace(parenRegEx, "").replace(blankCharRegEx, ""), tracks.map(({ name }) => name.replace(parenRegEx, "").replace(blankCharRegEx, ""))).ratings
+                return text.replace(parenRegEx, "").replace(blankCharRegEx, "").toLowerCase();
+            };
+
+            const altTracks = stringSimilarity.findBestMatch(fixName(name), tracks.map(({ name }) => fixName(name))).ratings
                 .map(({ rating }, i) => {
                     const track = tracks[i];
 
                     const artistsSimilarity = track.artists
-                        .map((artist) => stringSimilarity.findBestMatch(artist.name.replace(parenRegEx, "").replace(blankCharRegEx, ""), artistNames.map((artistName) => artistName.replace(parenRegEx, "").replace(blankCharRegEx, ""))).bestMatch.rating)
+                        .map((artist) => stringSimilarity.findBestMatch(fixName(artist.name), artistNames.map((artistName) => fixName(artistName))).bestMatch.rating)
                         .reduce((total, rating) => total + rating, 0) / track.artists.length;
 
                     const similarity = rating * .6 + artistsSimilarity * .4;
@@ -563,12 +601,12 @@ module.exports = (env = "development") => {
                         picture: track.picture,
                         source: track.source.id,
 
-                        playbackSources: track.playbackSources && track.playbackSources.map((playbackSource) => ({
+                        playbackSources: (track.playbackSources && track.playbackSources.length && track.playbackSources.map((playbackSource) => ({
                             urls: playbackSource.urls,
                             quality: playbackSource.quality,
                             cached: playbackSource.cached,
                             statical: playbackSource.statical,
-                        })),
+                        }))) || undefined,
 
                         similarity,
                     };
@@ -576,6 +614,28 @@ module.exports = (env = "development") => {
                 .filter((track) => track)
                 .sort((a, b) => b.similarity - a.similarity)
                 .slice(0, limit);
+
+            if (retrievePlaybackSource) {
+                await Promise.all(altTracks.map(async (track) => {
+                    if (!track.playbackSources) {
+                        track.playbackSources = (await (async () => {
+                            try {
+                                return await this.getPlaybackSources(track.id, track.source, { playbackQuality })
+                            } catch (e) {
+                                console.log(e);
+                            }
+                        })()) || undefined;
+                    }
+
+                    return track;
+                }));
+            }
+
+            if (withPlaybackSourceOnly) {
+                return altTracks.filter((altTrack) => altTrack.playbackSources && altTrack.playbackSources.length);
+            }
+
+            return altTracks;
         }
 
         async getStream(id, sourceId, { quality ,timeToWait, alternativeTracks = {} } = {}) {

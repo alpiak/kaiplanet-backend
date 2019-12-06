@@ -41,8 +41,23 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
     async getPlaybackSources(id, source, { playbackQuality = 0 } = {}) {
         try {
             const url = (await musicAPI.getSong(source, { id, br: 128000 })).url;
+            const playbackSources = url ? [new Track.PlaybackSource([url], 0)] : [];
 
-            return url ? [new Track.PlaybackSource([url], 0)] : [];
+            // playbackSources.push(...playbackSources.filter((playbackSource) => playbackSource.urls
+            //     .reduce((matched, url) => matched || /^\s*http:/.test(url), false))
+            //     .map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+            //         quality: playbackSource.quality,
+            //         statical: playbackSource.statical,
+            //         cached: playbackSource.cached,
+            //     })));
+            //
+            // return playbackSources;
+
+            return playbackSources.map((playbackSource) => new Track.PlaybackSource(playbackSource.urls.map((url) => url.replace(/^\s*http:/, "https:")), {
+                quality: playbackSource.quality,
+                statical: playbackSource.statical,
+                cached: playbackSource.cached,
+            }));
         } catch (e) {
             console.log(e);
 
