@@ -12,6 +12,7 @@ const Cache = require("streaming-cache");
 const cloudCache = require("cloud-cache").default;
 const { pipe } = require("mississippi");
 const FSBlobStore = require("fs-blob-store");
+const { Throttle } = require("stream-throttle");
 
 class GetContentRange extends Transform {
     _start;
@@ -127,13 +128,29 @@ module.exports = (env = "development") => {
             return hash.digest("hex");
         }
 
-        async cache(key, originRes) {
+        async cache(key, originRes, { transmissionRate } = {}) {
             const hashedKey = CacheService._getHashCode(key);
 
             const cachePromise = new Promise((resolve, reject) => {
                 let byteLength;
 
-                pipe(originRes, new GetByteLength({
+                if (!transmissionRate) {
+                    pipe(originRes, new GetByteLength({
+                        callback: (contentByteLength) => {
+                            byteLength = contentByteLength;
+                        },
+                    }), this._cache.set(hashedKey), (err) => {
+                        if (err) {
+                            reject(err);
+                        }
+
+                        resolve(byteLength);
+                    });
+
+                    return;
+                }
+
+                pipe(originRes, new Throttle({ rate: transmissionRate }), new GetByteLength({
                     callback: (contentByteLength) => {
                         byteLength = contentByteLength;
                     },

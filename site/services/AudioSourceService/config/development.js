@@ -71,6 +71,7 @@ module.exports = {
     assetBaseUrl: "http://kaiplanet.net",
     caching: {
         queueMaxSize: 128,
+        transmissionRate: 32 * 1024,
         coolDownTime: 10000,
         timeout: 10000,
         expiresAfter: 1000 * 60 * 60 * 24 * 30,

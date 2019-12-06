@@ -718,7 +718,7 @@ module.exports = (env = "development") => {
                 }
 
                 try {
-                    await this._cacheService.cache(streamUrl.href, await this._cacheService.sendRequest(streamUrl, "GET", { timeout: config.caching.timeout }));
+                    await this._cacheService.cache(streamUrl.href, await this._cacheService.sendRequest(streamUrl, "GET", { timeout: config.caching.timeout }), { transmissionRate: config.caching.transmissionRate });
                 } catch (e) {
                     console.log(e);
 
@@ -743,7 +743,7 @@ module.exports = (env = "development") => {
                             await this._cacheService.cache(streamUrl.href, await this._cacheService.sendRequest(streamUrl, "GET", {
                                 proxy,
                                 timeout: config.caching.timeout,
-                            }));
+                            }), { transmissionRate: config.caching.transmissionRate });
 
                             break;
                         } catch (e) {
