@@ -11,6 +11,10 @@ module.exports = () => {
         }
 
         async get(index) {
+            if (typeof index === "undefined") {
+                return this._tracks;
+            }
+
             return this._tracks[index] || null;
         }
 

@@ -96,6 +96,16 @@ const request = (options) => new Promise((resolve, reject) => {
         });
     });
 
+    if (options.abortSignal) {
+        options.abortSignal.addEventListener("abort", () => {
+            if (req.aborted) {
+                return;
+            }
+
+            req.abort();
+        });
+    }
+
     req.on('error', e => {
         reject(e);
     });

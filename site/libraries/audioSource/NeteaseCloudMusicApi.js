@@ -17,35 +17,35 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    searchSongs(keywords, { limit, offset, proxy } = {}) {
-        return this.request("/search", { keywords, limit, offset }, ["result", "songs"], { proxy });
+    searchSongs(keywords, { limit, offset, proxy, abortSignal } = {}) {
+        return this.request("/search", { keywords, limit, offset }, ["result", "songs"], { proxy, abortSignal });
     }
 
-    getSongDetail(ids, { proxy } = {}) {
-        return this.request("/song/detail", {ids: ids.join(",") }, ["songs"], { proxy });
+    getSongDetail(ids, { proxy, abortSignal } = {}) {
+        return this.request("/song/detail", {ids: ids.join(",") }, ["songs"], { proxy, abortSignal });
     }
 
-    getSongURL(id, { proxy } = {}) {
-        return this.request("/song/url", { id, br: 128000 }, ["data"], { proxy });
+    getSongURL(id, { proxy, abortSignal } = {}) {
+        return this.request("/song/url", { id, br: 128000 }, ["data"], { proxy, abortSignal });
     }
 
-    getToplist({ proxy } = {}) {
-        return this.request("/toplist", null, ["list"], { proxy });
+    getToplist({ proxy, abortSignal } = {}) {
+        return this.request("/toplist", null, ["list"], { proxy, abortSignal });
     }
 
-    searchPlaylist(keywords, { limit, offset, proxy } = {}) {
-        return this.request("/search", { keywords, type: 1000, limit, offset }, ["result", "playlists"], { proxy });
+    searchPlaylist(keywords, { limit, offset, proxy, abortSignal } = {}) {
+        return this.request("/search", { keywords, type: 1000, limit, offset }, ["result", "playlists"], { proxy, abortSignal });
     }
 
-    getPlaylistDetail(id, { proxy } = {}) {
-        return this.request("/playlist/detail", { id }, ["playlist", "tracks"], { proxy });
+    getPlaylistDetail(id, { proxy, abortSignal } = {}) {
+        return this.request("/playlist/detail", { id }, ["playlist", "tracks"], { proxy, abortSignal });
     }
 
-    getSimiSong(id, { proxy } = {}) {
-        return this.request("/simi/song", { id }, ["songs"], { proxy });
+    getSimiSong(id, { proxy, abortSignal } = {}) {
+        return this.request("/simi/song", { id }, ["songs"], { proxy, abortSignal });
     }
 
-    async request(path, data, dataPath = [], { proxy } = {}) {
+    async request(path, data, dataPath = [], { proxy, abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -54,6 +54,7 @@ module.exports =  () => class {
             method: "GET",
             data: data,
             queries: { proxy },
+            abortSignal,
         });
 
         if (res.code === 200) {

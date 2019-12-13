@@ -366,7 +366,13 @@ module.exports = (env = "development") => {
             const source = Source.fromId(sourceId);
 
             if (source) {
-                return (await source.getPlaybackSources(id, { producerRating, playbackQuality })).map((playbackSource) => ({
+                const playbackSources = await source.getPlaybackSources(id, { producerRating, playbackQuality });
+
+                if (!playbackSources || !playbackSources.length) {
+                    return null;
+                }
+
+                return playbackSources.map((playbackSource) => ({
                     urls: playbackSource.urls,
                     quality: playbackSource.quality,
                     cached: playbackSource.cached,
@@ -386,54 +392,72 @@ module.exports = (env = "development") => {
                 return sourceIds.map((sourceId) => Source.fromId(sourceId));
             })(sourceIds);
 
+            const abortController = new AbortController();
+
             if (!sourceRating) {
                 let failCount = 0;
                 let err;
 
                 const recommendedTrackPromise = Promise.race(sources.map(async (source) => {
                     try {
-                        const recommendedTrack = await (async (track) => {
+                        const recommendedTracks = await (async (track) => {
                             if (track) {
                                 const { name, artists } = track;
 
-                                return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { playbackQuality, producerRating }) || null;
+                                return await source.getRecommends(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), {
+                                    playbackQuality,
+                                    producerRating,
+                                    abortSignal: abortController.signal,
+                                }) || null;
                             }
 
-                            return await source.getRecommend(null, { playbackQuality, producerRating }) || null;
+                            return await source.getRecommends(null, {
+                                playbackQuality,
+                                producerRating,
+                                abortSignal: abortController.signal,
+                            }) || null;
                         })(track);
 
-                        if (recommendedTrack) {
-                            const playbackSources = await (async () => {
-                                if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
-                                    return recommendedTrack.playbackSources.map((playbackSource) => ({
-                                        urls: playbackSource.urls,
-                                        quality: playbackSource.quality,
-                                        cached: playbackSource.cached,
-                                        statical: playbackSource.statical,
-                                    }));
-                                }
+                        if (recommendedTracks && recommendedTracks.length) {
+                            recommendedTracks.sort(() => Math.random() - .5);
 
-                                if (retrievePlaybackSource) {
-                                    try {
-                                        return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
-                                    } catch (e) {
-                                        console.log(e);
+                            for (const recommendedTrack of recommendedTracks) {
+                                if (recommendedTrack) {
+                                    const playbackSources = await (async () => {
+                                        if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
+                                            return recommendedTrack.playbackSources.map((playbackSource) => ({
+                                                urls: playbackSource.urls,
+                                                quality: playbackSource.quality,
+                                                cached: playbackSource.cached,
+                                                statical: playbackSource.statical,
+                                            }));
+                                        }
+
+                                        if (retrievePlaybackSource) {
+                                            try {
+                                                return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
+                                            } catch (e) {
+                                                console.log(e);
+                                            }
+                                        }
+
+                                        return null;
+                                    })();
+
+                                    if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
+                                        abortController.abort();
+
+                                        return {
+                                            id: recommendedTrack.id,
+                                            name: recommendedTrack.name,
+                                            duration: recommendedTrack.duration,
+                                            artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
+                                            picture: recommendedTrack.picture,
+                                            source: recommendedTrack.source.id,
+                                            playbackSources: playbackSources || undefined,
+                                        };
                                     }
                                 }
-
-                                return undefined;
-                            })();
-
-                            if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
-                                return {
-                                    id: recommendedTrack.id,
-                                    name: recommendedTrack.name,
-                                    duration: recommendedTrack.duration,
-                                    artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
-                                    picture: recommendedTrack.picture,
-                                    source: recommendedTrack.source.id,
-                                    playbackSources,
-                                };
                             }
                         }
 
@@ -462,7 +486,7 @@ module.exports = (env = "development") => {
                 }));
 
                 if (await recommendedTrackPromise === null && track) {
-                    return await this.getRecommend(null, sourceIds, { playbackQuality, sourceRating, producerRating, retrievePlaybackSource, withPlaybackSourceOnly  });
+                    return await this.getRecommend(null, sourceIds, { playbackQuality, sourceRating, producerRating, retrievePlaybackSource, withPlaybackSourceOnly });
                 }
 
                 return await recommendedTrackPromise;
@@ -472,48 +496,62 @@ module.exports = (env = "development") => {
 
             for (const source of sources) {
                 try {
-                    const recommendedTrack = await (async (track) => {
+                    const recommendedTracks = await (async (track) => {
                         if (track) {
                             const { name, artists } = track;
 
-                            return await source.getRecommend(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), { playbackQuality, producerRating }) || null;
+                            return await source.getRecommends(new Track(undefined, name, undefined, artists.map(artist => new Artist(artist))), {
+                                playbackQuality,
+                                producerRating,
+                                abortSignal: abortController.signal,
+                            }) || null;
                         }
 
-                        return await source.getRecommend(null, { playbackQuality, producerRating }) || null;
+                        return await source.getRecommends(null, {
+                            playbackQuality,
+                            producerRating,
+                            abortSignal: abortController.signal,
+                        }) || null;
                     })(track);
 
-                    if (recommendedTrack) {
-                        const playbackSources = await (async () => {
-                            if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
-                                return recommendedTrack.playbackSources.map((playbackSource) => ({
-                                    urls: playbackSource.urls,
-                                    quality: playbackSource.quality,
-                                    cached: playbackSource.cached,
-                                    statical: playbackSource.statical,
-                                }));
-                            }
+                    if (recommendedTracks && recommendedTracks.length) {
+                        recommendedTracks.sort(() => Math.random() - .5);
 
-                            if (retrievePlaybackSource) {
-                                try {
-                                    return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
-                                } catch (e) {
-                                    console.log(e);
+                        for (const recommendedTrack of recommendedTracks) {
+                            const playbackSources = await (async () => {
+                                if  (recommendedTrack.playbackSources && recommendedTrack.playbackSources.length) {
+                                    return recommendedTrack.playbackSources.map((playbackSource) => ({
+                                        urls: playbackSource.urls,
+                                        quality: playbackSource.quality,
+                                        cached: playbackSource.cached,
+                                        statical: playbackSource.statical,
+                                    }));
                                 }
+
+                                if (retrievePlaybackSource) {
+                                    try {
+                                        return await this.getPlaybackSources(recommendedTrack.id, recommendedTrack.source.id, { playbackQuality })
+                                    } catch (e) {
+                                        console.log(e);
+                                    }
+                                }
+
+                                return undefined;
+                            })();
+
+                            if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
+                                abortController.abort();
+
+                                return {
+                                    id: recommendedTrack.id,
+                                    name: recommendedTrack.name,
+                                    duration: recommendedTrack.duration,
+                                    artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
+                                    picture: recommendedTrack.picture,
+                                    source: recommendedTrack.source.id,
+                                    playbackSources,
+                                };
                             }
-
-                            return undefined;
-                        })();
-
-                        if (!withPlaybackSourceOnly || playbackSources && playbackSources.length) {
-                            return {
-                                id: recommendedTrack.id,
-                                name: recommendedTrack.name,
-                                duration: recommendedTrack.duration,
-                                artists: recommendedTrack.artists.map(artist => ({name: artist.name})),
-                                picture: recommendedTrack.picture,
-                                source: recommendedTrack.source.id,
-                                playbackSources,
-                            };
                         }
                     }
                 } catch (e) {

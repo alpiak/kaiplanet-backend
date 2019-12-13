@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/bubblesoft/bubblesoft-backend#readme",
   "dependencies": {
+    "abortcontroller-polyfill": "^1.4.0",
     "ali-oss": "^4.10.1",
     "apicache": "^1.2.0",
     "body-parser": "^1.19.0",

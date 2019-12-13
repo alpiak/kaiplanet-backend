@@ -19,7 +19,7 @@ module.exports =  () => class MusicInterface {
         this._protocol = protocol;
     }
 
-    async search(key, pageNum, pageSize) {
+    async search(key, pageNum, pageSize, { abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -27,6 +27,7 @@ module.exports =  () => class MusicInterface {
             path: `${MusicInterface.basePath}/search/${encodeURIComponent(key)}${pageNum ? "/" + pageNum : ""}${pageNum && pageSize ? "/" + pageSize : ""}`,
             method: "GET",
             rejectUnauthorized: false,
+            abortSignal,
         });
 
         if (res.errno === 0) {
@@ -36,7 +37,7 @@ module.exports =  () => class MusicInterface {
         throw new Error(res.msg);
     }
 
-    async getSongUrllist(ids) {
+    async getSongUrllist(ids, { abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -44,6 +45,7 @@ module.exports =  () => class MusicInterface {
             path: `${MusicInterface.basePath}/songUrllist/${ids.join(",")}`,
             method: "GET",
             rejectUnauthorized: false,
+            abortSignal,
         });
 
         if (res.errno === 0) {
@@ -53,7 +55,7 @@ module.exports =  () => class MusicInterface {
         throw new Error(res.msg);
     }
 
-    async getToplists() {
+    async getToplists({ abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -61,6 +63,7 @@ module.exports =  () => class MusicInterface {
             path: `${MusicInterface.basePath}/toplist`,
             method: "GET",
             rejectUnauthorized: false,
+            abortSignal,
         });
 
         if (res.errno === 0) {
@@ -70,7 +73,7 @@ module.exports =  () => class MusicInterface {
         throw new Error(res.msg);
     }
 
-    async getSongList(id) {
+    async getSongList(id, { abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -78,6 +81,7 @@ module.exports =  () => class MusicInterface {
             path: `${MusicInterface.basePath}/songList/${id}`,
             method: "GET",
             rejectUnauthorized: false,
+            abortSignal,
         });
 
         if (res.errno === 0) {
@@ -87,7 +91,7 @@ module.exports =  () => class MusicInterface {
         throw new Error(res.msg);
     }
 
-    async getAlbumImg(albummid, singerMid) {
+    async getAlbumImg(albummid, singerMid, { abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -95,6 +99,7 @@ module.exports =  () => class MusicInterface {
             path: `${MusicInterface.basePath}/albumImg/${albummid}/${singerMid}`,
             method: "GET",
             rejectUnauthorized: false,
+            abortSignal,
         });
 
         if (res.errno === 0) {

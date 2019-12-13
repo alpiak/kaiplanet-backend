@@ -80,7 +80,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             }(tracks);
         }
 
-        async getRecommend(track, source, { playbackQuality = 0 }) {
+        async getRecommends(track, source, { playbackQuality = 0, abortSignal } = {}) {
             const tracks = await (async () => {
                 if (track) {
                     return null;
@@ -90,24 +90,24 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 const randomList = lists[Math.floor(lists.length * Math.random())];
 
                 if (randomList) {
-                    return (await this.getList(randomList.id, source, { playbackQuality }));
+                    return (await this.getList(randomList.id, source, { playbackQuality, abortSignal }));
                 }
 
                 return null;
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend(track, source, { playbackQuality });
+                return await super.getRecommends(track, source, { playbackQuality, abortSignal });
             }
 
-            return tracks[Math.floor(tracks.length * Math.random())] || null;
+            return tracks;
         }
 
         async getLists(source) {
             return [new List("23603721", "咪咕官方榜", source)];
         }
 
-        async getList(id, source, { playbackQuality, limit, offset } = {}) {
+        async getList(id, source, { playbackQuality, limit, offset, abortSignal } = {}) {
             const tracks = await (async () => {
                 try {
                     return await retry(async () => {
@@ -116,6 +116,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                                 proxy: this._proxyPool.getRandomProxy("CN"),
                                 pageSize: limit,
                                 pageNo: Math.floor(offset / limit),
+                                abortSignal,
                             })) || null;
                         } catch (e) {
                             console.log(e);
@@ -130,6 +131,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                         return (await this._miguMusicApi.getCmsList(id, {
                             pageSize: limit,
                             pageNo: Math.floor(offset / limit),
+                            abortSignal,
                         })) || null;
                     } catch (e) {
                         console.log(e);

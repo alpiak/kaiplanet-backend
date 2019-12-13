@@ -65,7 +65,7 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
         }
     }
 
-    // async getRecommend(track, source, { playbackQuality = 0 } = {}) {
+    // async getRecommends(track, source, { playbackQuality = 0 } = {}) {
     //     const tracks = (() => {
     //         if (source === Source.netEase) {
     //             return (async () => {
@@ -112,9 +112,7 @@ module.exports = ({ Artist, Track, TrackList, List, Producer, Source }) => class
     //         return null;
     //     }
     //
-    //     const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
-    //
-    //     return new Track(String(randomTrack.id), randomTrack.name, +randomTrack.duration, randomTrack.artists.map(artist => new Artist(artist.name)), randomTrack.album.coverBig && randomTrack.album.coverBig.replace(/^https/, 'http'), source);
+    //     return tracks.map((track) => new Track(String(track.id), track.name, +track.duration, track.artists.map(artist => new Artist(artist.name)), track.album.coverBig && track.album.coverBig.replace(/^https/, 'http'), source));
     // }
 
     async getLists(source) {

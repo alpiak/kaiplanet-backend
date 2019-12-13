@@ -17,19 +17,19 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    autocomplete(keyword, { proxy } = {}) {
-        return this.request("/autocomplete_tag", { keyword }, ["key", 0]);
+    autocomplete(keyword, { proxy, abortSignal } = {}) {
+        return this.request("/autocomplete_tag", { keyword }, ["key", 0], { proxy, abortSignal });
     }
 
-    scrSearch(keyword, { rows, proxy } = {}) {
-        return this.request("/scr_search_tag", { keyword, rows, type: 2 }, ["musics"]);
+    scrSearch(keyword, { rows, proxy, abortSignal } = {}) {
+        return this.request("/scr_search_tag", { keyword, rows, type: 2 }, ["musics"], { proxy, abortSignal });
     }
 
-    getCmsList(nid, { pageSize, pageNo, proxy } = {}) {
-        return this.request("/cms_list_tag", { nid, pageSize, pageNo }, ["result", "results"]);
+    getCmsList(nid, { pageSize, pageNo, proxy, abortSignal } = {}) {
+        return this.request("/cms_list_tag", { nid, pageSize, pageNo }, ["result", "results"], { proxy, abortSignal });
     }
 
-    async request(path, data, dataPath = []) {
+    async request(path, data, dataPath = [], { proxy, abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -37,6 +37,7 @@ module.exports =  () => class {
             path: path,
             method: "GET",
             data,
+            abortSignal,
         });
 
         // Responded with success.

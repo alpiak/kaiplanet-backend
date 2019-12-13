@@ -245,6 +245,10 @@ module.exports = ({ TrackList, config }) => class Source {
             .flat()
             .filter((playbackSource) => playbackSource);
 
+        if (!playbackSources || !playbackSources.length) {
+            return null;
+        }
+
         if (typeof producerRating !== "object" || !producerRating) {
             playbackSources.sort((a, b) => b.urls.join("").length - a.urls.join("").length);
         }
@@ -318,7 +322,7 @@ module.exports = ({ TrackList, config }) => class Source {
         return null;
     }
 
-    async getRecommend(track, { playbackQuality = 0, producerRating } = {}) {
+    async getRecommends(track, { playbackQuality = 0, producerRating, abortSignal } = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         if (track) {
@@ -326,10 +330,10 @@ module.exports = ({ TrackList, config }) => class Source {
 
             for (const producer of sortedProducers) {
                 try {
-                    const recommendedTrack = await producer.getRecommend(track, this, { playbackQuality });
+                    const recommendedTracks = await producer.getRecommends(track, this, { playbackQuality, abortSignal });
 
-                    if (recommendedTrack) {
-                        return recommendedTrack;
+                    if (recommendedTracks && recommendedTracks.length) {
+                        return recommendedTracks;
                     }
                 } catch (e) {
                     err = e;
@@ -347,10 +351,10 @@ module.exports = ({ TrackList, config }) => class Source {
 
         for (const producer of sortedProducers) {
             try {
-                const recommendedTrack = await producer.getRecommend(track, this, { playbackQuality });
+                const recommendedTracks = await producer.getRecommends(track, this, { playbackQuality, abortSignal });
 
-                if (recommendedTrack) {
-                    return recommendedTrack;
+                if (recommendedTracks && recommendedTracks.length) {
+                    return recommendedTracks;
                 }
             } catch (e) {
                 err = e;

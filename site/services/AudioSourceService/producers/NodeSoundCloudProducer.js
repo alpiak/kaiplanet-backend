@@ -33,6 +33,16 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }
 
         async get(index) {
+            if (typeof index === "undefined") {
+                return this._tracks.map((track) => {
+                    if (!track) {
+                        return null;
+                    }
+
+                    return new Track(String(track.id), track.title, +track.duration, [new Artist(track.user.username)], track.artwork_url, this._source);
+                });
+            }
+
             const track = this._tracks[index];
 
             if (!track) {
@@ -78,7 +88,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             }
         }
 
-        async getRecommend({ name, artists }, source, { playbackQuality = 0 }) {
+        async getRecommends({ name, artists }, source, { playbackQuality = 0, abortSignal }) {
             const tracks = await (async () => {
                 if (name) {
                     const matchedTrack = (await SC.get('/tracks', {
@@ -99,12 +109,12 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (!tracks || !tracks.length) {
-                return null;
+                return await super.getRecommends({ name, artists }, source, { playbackQuality, abortSignal });
             }
 
             const trackList = new NodeSoundCloudTrackList(tracks, source, { playbackQuality });
 
-            return trackList.get(Math.floor(trackList.length * Math.random())) || null;
+            return await trackList.get();
         }
 
         async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {

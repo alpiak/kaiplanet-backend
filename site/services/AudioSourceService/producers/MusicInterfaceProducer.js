@@ -62,12 +62,12 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
         }
     }
 
-    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
+    async getRecommends(track, source, { playbackQuality = 0, abortSignal } = {}) {
         if (!track) {
             const tracks = await (async () => {
                 const lists = await (() => {
                     try {
-                        return this._musicInterface.getToplists();
+                        return this._musicInterface.getToplists({ abortSignal });
                     } catch (e) {
                         throw e;
                     }
@@ -77,7 +77,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     const randomList = lists[Math.floor(lists.length * Math.random())];
 
                     try {
-                        return (await this._musicInterface.getSongList(randomList.id)) || null;
+                        return (await this._musicInterface.getSongList(randomList.id, { abortSignal })) || null;
                     } catch (e) {
                         throw e;
                     }
@@ -87,7 +87,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend(track, source, { playbackQuality });
+                return await super.getRecommends(track, source, { playbackQuality, abortSignal });
             }
 
             const randomTrack = tracks[Math.floor(tracks.length * Math.random())];
@@ -100,10 +100,10 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 }
             })();
 
-            return new Track(randomTrack.songMid, randomTrack.songName, null, randomTrack.singer.map((singer) => new Artist(singer.singerName)), picture, source);
+            return [new Track(randomTrack.songMid, randomTrack.songName, null, randomTrack.singer.map((singer) => new Artist(singer.singerName)), picture, source)];
         }
 
-        return await super.getRecommend(track, source, { playbackQuality });
+        return await super.getRecommends(track, source, { playbackQuality, abortSignal });
     }
 
     async getLists(source) {

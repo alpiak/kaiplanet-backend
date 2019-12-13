@@ -17,15 +17,15 @@ module.exports =  () => class {
         this._protocol = protocol;
     }
 
-    getRankList({ proxy } = {}) {
-        return this.request("/rank/list", { json: "true" }, ["rank", "list"], { proxy });
+    getRankList({ proxy, abortSignal } = {}) {
+        return this.request("/rank/list", { json: "true" }, ["rank", "list"], { proxy, abortSignal });
     }
 
-    getRankInfo(rankId, { page, proxy } = {}) {
-        return this.request("/rank/info/", { rankid: rankId, page, json: "true" }, ["songs", "list"], { proxy });
+    getRankInfo(rankId, { page, proxy, abortSignal } = {}) {
+        return this.request("/rank/info/", { rankid: rankId, page, json: "true" }, ["songs", "list"], { proxy, abortSignal });
     }
 
-    async request(path, data, dataPath = [], { proxy } = {}) {
+    async request(path, data, dataPath = [], { proxy, abortSignal } = {}) {
         const res = await request({
             protocol: this._protocol,
             hostname: this._host,
@@ -34,6 +34,7 @@ module.exports =  () => class {
             method: "GET",
             data,
             proxy,
+            abortSignal,
         });
 
         if (res && res[dataPath[0]]) {

@@ -21,34 +21,37 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
         this._kuGouMobile = new KuGouMobile(host, port, protocol);
     }
 
-    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
+    async getRecommends(track, source, { playbackQuality = 0, abortSignal } = {}) {
         if (!track) {
             const tracks = await (async () => {
-                const lists = await this.getLists(source);
+                const lists = await this.getLists(source, { abortSignal });
                 const randomList = lists[Math.floor(lists.length * Math.random())];
 
                 if (randomList) {
-                    return (await this.getList(randomList.id, source, { playbackQuality }));
+                    return (await this.getList(randomList.id, source, { playbackQuality, abortSignal }));
                 }
 
-                return  null;
+                return null;
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend(track, source, { playbackQuality });
+                return await super.getRecommends(track, source, { playbackQuality, abortSignal });
             }
 
-            return tracks[Math.floor(tracks.length * Math.random())];
+            return tracks;
         }
 
-        return await super.getRecommend(track, source, { playbackQuality });
+        return await super.getRecommends(track, source, { playbackQuality, abortSignal });
     }
 
-    async getLists(source) {
+    async getLists(source, { abortSignal } = {}) {
         try {
             return await retry(async () => {
                 try {
-                    return (await this._kuGouMobile.getRankList({ proxy: this._proxyPool.getRandomProxy("CN") })).map(({ rankid, rankname }) => new List(rankid, rankname, source));
+                    return (await this._kuGouMobile.getRankList({
+                        proxy: this._proxyPool.getRandomProxy("CN"),
+                        abortSignal,
+                    })).map(({ rankid, rankname }) => new List(rankid, rankname, source));
                 } catch (e) {
                     console.log(e);
 
@@ -59,7 +62,7 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
             console.log(e);
 
             try {
-                return (await this._kuGouMobile.getRankList()).map(({ rankid, rankname }) => new List(rankid, rankname, source));
+                return (await this._kuGouMobile.getRankList({ abortSignal })).map(({ rankid, rankname }) => new List(rankid, rankname, source));
             } catch (e) {
                 console.log(e);
 
@@ -68,12 +71,16 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
         }
     }
 
-    async getList(id, source, { playbackQuality = 0, limit, offset } = {}) {
+    async getList(id, source, { playbackQuality = 0, limit, offset, abortSignal } = {}) {
         const tracks = await (async () => {
             try {
                 return await retry(async () => {
                     try {
-                        return (await this._kuGouMobile.getRankInfo(id, { page: Math.ceil(offset / limit), proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                        return (await this._kuGouMobile.getRankInfo(id, {
+                            page: Math.ceil(offset / limit),
+                            proxy: this._proxyPool.getRandomProxy("CN"),
+                            abortSignal,
+                        })) || null;
                     } catch (e) {
                         console.log(e);
 
@@ -84,7 +91,10 @@ module.exports = ({ Artist, Track, List, Source, Producer, config }) => class Ku
                 console.log(e);
 
                 try {
-                    return (await this._kuGouMobile.getRankInfo(id, { page: Math.ceil(offset / limit) })) || null;
+                    return (await this._kuGouMobile.getRankInfo(id, {
+                        page: Math.ceil(offset / limit),
+                        abortSignal,
+                    })) || null;
                 } catch (e) {
                     console.log(e);
 

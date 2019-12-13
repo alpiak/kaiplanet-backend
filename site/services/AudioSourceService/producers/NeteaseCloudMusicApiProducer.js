@@ -55,7 +55,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             this._neteaseCloudMusicApi = new NeteaseCloudMusicApi(host, port, protocol);
         }
 
-        async search(keywords, source, { playbackQuality = 0, limit } = {}) {
+        async search(keywords, source, { playbackQuality = 0, limit, abortSignal } = {}) {
             const proxyPool = this._proxyPool;
 
             const tracks = (await (async () => {
@@ -65,6 +65,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                             return await this._neteaseCloudMusicApi.searchSongs(keywords, {
                                 limit,
                                 proxy: proxyPool.getRandomProxy("CN"),
+                                abortSignal,
                             });
                         } catch (e) {
                             console.log(e);
@@ -76,7 +77,10 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     console.log(e);
 
                     try {
-                        return await this._neteaseCloudMusicApi.searchSongs(keywords, { limit });
+                        return await this._neteaseCloudMusicApi.searchSongs(keywords, {
+                            limit,
+                            abortSignal,
+                        });
                     } catch (e) {
                         console.log(e);
 
@@ -85,7 +89,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 }
             })()) || [];
 
-            const getPicture = (track) => this._getPicture(track);
+            const getPicture = (track) => this._getPicture(track, abortSignal);
 
             return new class extends NeteaseCloudMusicApiTrackList {
                 async _getPicture(track) {
@@ -146,12 +150,13 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             }));
         }
 
-        async getRecommend(track, source, { playbackQuality = 0 }) {
+        async getRecommends(track, source, { playbackQuality = 0, abortSignal }) {
             const tracks = await (async () => {
                 if (track) {
                     const matchedTrack = await (await this.search([track.name, ...track.artists.map((artist) => artist.name)].join(","), source, {
                         playbackQuality,
                         limit: 1,
+                        abortSignal,
                     })).get(0);
 
                     return await (async (matchedTrack) => {
@@ -159,7 +164,10 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                             try {
                                 return await retry(async () => {
                                     try {
-                                        return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                                        return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id, {
+                                            proxy: this._proxyPool.getRandomProxy("CN"),
+                                            abortSignal,
+                                        })) || null;
                                     } catch (e) {
                                         console.log(e);
 
@@ -170,7 +178,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                                 console.log(e);
 
                                 try {
-                                    return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id)) || null;
+                                    return (await this._neteaseCloudMusicApi.getSimiSong(matchedTrack.id, { abortSignal })) || null;
                                 } catch (e) {
                                     console.log(e);
 
@@ -183,11 +191,14 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     })(matchedTrack);
                 }
 
-                const lists = await this.getLists(source);
+                const lists = await this.getLists(source, { abortSignal });
                 const randomList = lists[Math.floor(lists.length * Math.random())];
 
                 if (randomList) {
-                    return (await this.getList(randomList.id, source, { playbackQuality })).map((track) => ({
+                    return (await this.getList(randomList.id, source, {
+                        playbackQuality,
+                        abortSignal,
+                    })).map((track) => ({
                         id: track.id,
                         name: track.name,
                         duration: track.duration,
@@ -200,10 +211,10 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             })();
 
             if (!tracks || !tracks.length) {
-                return await super.getRecommend(track, source, { playbackQuality });
+                return await super.getRecommends(track, source, { playbackQuality, abortSignal });
             }
 
-            const getPicture = (track) => this._getPicture(track);
+            const getPicture = (track) => this._getPicture(track, { abortSignal });
 
             const trackList = new class extends NeteaseCloudMusicApiTrackList {
                 async _getPicture(track) {
@@ -215,15 +226,20 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                 }
             }(tracks, source, { playbackQuality });
 
-            return trackList.get(Math.floor(trackList.length * Math.random())) || null;
+            const randomTrack = await trackList.get(Math.floor(trackList.length * Math.random()));
+
+            return randomTrack ? [randomTrack] : null;
         }
 
-        async getLists(source) {
+        async getLists(source, { abortSignal } = {}) {
             try {
                 try {
                     return await retry(async () => {
                         try {
-                            return (await this._neteaseCloudMusicApi.getToplist({ proxy: this._proxyPool.getRandomProxy("CN") })).map(({ id, name }) => new List(id, name, source));
+                            return (await this._neteaseCloudMusicApi.getToplist({
+                                proxy: this._proxyPool.getRandomProxy("CN"),
+                                abortSignal,
+                            })).map(({ id, name }) => new List(id, name, source));
                         } catch (e) {
                             console.log(e);
 
@@ -234,7 +250,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     console.log(e);
 
                     try {
-                        return (await this._neteaseCloudMusicApi.getToplist()).map(({ id, name }) => new List(id, name, source));
+                        return (await this._neteaseCloudMusicApi.getToplist({ abortSignal })).map(({ id, name }) => new List(id, name, source));
                     } catch (e) {
                         console.log(e);
 
@@ -251,6 +267,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                                         return await this._neteaseCloudMusicApi.searchPlaylist(listName, {
                                             limit: 0,
                                             proxy: proxyPool.getRandomProxy("CN"),
+                                            abortSignal,
                                         });
                                     } catch (e) {
                                         console.log(e);
@@ -262,7 +279,10 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                                 console.log(e);
 
                                 try {
-                                    return await this._neteaseCloudMusicApi.searchPlaylist(listName, { limit: 0 });
+                                    return await this._neteaseCloudMusicApi.searchPlaylist(listName, {
+                                        limit: 0,
+                                        abortSignal,
+                                    });
                                 } catch (e) {
                                     console.log(e);
 
@@ -280,12 +300,15 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             }
         }
 
-        async getList(id, source, { playbackQuality, limit, offset } = {}) {
+        async getList(id, source, { playbackQuality, limit, offset, abortSignal } = {}) {
             const tracks = await (async () => {
                 try {
                     return await retry(async () => {
                         try {
-                            return (await this._neteaseCloudMusicApi.getPlaylistDetail(id, { proxy: this._proxyPool.getRandomProxy("CN") })) || null;
+                            return (await this._neteaseCloudMusicApi.getPlaylistDetail(id, {
+                                proxy: this._proxyPool.getRandomProxy("CN"),
+                                abortSignal,
+                            })) || null;
                         } catch (e) {
                             console.log(e);
 
@@ -296,7 +319,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     console.log(e);
 
                     try {
-                        return (await this._neteaseCloudMusicApi.getPlaylistDetail(id)) || null;
+                        return (await this._neteaseCloudMusicApi.getPlaylistDetail(id, { abortSignal })) || null;
                     } catch (e) {
                         console.log(e);
 
@@ -337,12 +360,15 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
             return null;
         }
 
-        async _getPicture(track) {
+        async _getPicture(track, { abortSignal } = {}) {
             try {
                 return await retry(async () => {
                     const details = await (async () => {
                         try {
-                            return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)], { proxy: this._proxyPool.getRandomProxy("CN")}))[0];
+                            return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)], {
+                                proxy: this._proxyPool.getRandomProxy("CN"),
+                                abortSignal,
+                            }))[0];
                         } catch (e) {
                             console.log(e);
 
@@ -350,14 +376,14 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                         }
                     })();
 
-                    return (details && details.al && details.al.picUrl) || null;
+                    return (details && details.al && details.al.picUrl && details.al.picUrl.replace(/^\s*http:/, "https:")) || null;
                 }, this._proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
             } catch (e) {
                 console.log(e);
 
                 const details = await (async () => {
                     try {
-                        return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)]))[0];
+                        return (await this._neteaseCloudMusicApi.getSongDetail([String(track.id)], { abortSignal }))[0];
                     } catch (e) {
                         console.log(e);
 
@@ -365,7 +391,7 @@ module.exports = ({ Artist, Track, TrackList, List, Source, Producer, config }) 
                     }
                 })();
 
-                return (details && details.al && details.al.picUrl) || null;
+                return (details && details.al && details.al.picUrl && details.al.picUrl.replace(/^\s*http:/, "https:")) || null;
             }
         }
     }

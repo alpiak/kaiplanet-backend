@@ -2,10 +2,12 @@
  * Created by qhyang on 2017/4/20.
  */
 
-const fs = require('fs'),
-    Promise = require('bluebird'),
-    express = require('express'),
-    bodyParser = require('body-parser');
+const fs = require('fs');
+const Promise = require('bluebird');
+const express = require('express');
+const bodyParser = require('body-parser');
+
+require("abortcontroller-polyfill/dist/abortcontroller-polyfill-only");
 
 Promise.promisifyAll(fs);
 

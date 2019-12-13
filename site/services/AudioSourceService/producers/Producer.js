@@ -47,31 +47,31 @@ module.exports = ({ TrackList }) => class Producer {
 
     constructor() { }
 
-    async search(keywords, source, { limit, playbackQuality = 0 } = {}) {
+    async search(keywords, source, { limit, playbackQuality = 0, abortSignal } = {}) {
         return new TrackList();
     }
 
-    async getPlaybackSources(id, source, { playbackQuality = 0} = {}) {
+    async getPlaybackSources(id, source, { playbackQuality = 0, abortSignal } = {}) {
         return [];
     }
 
-    async getRecommend(track, source, { playbackQuality = 0 } = {}) {
+    async getRecommends(track, source, { playbackQuality = 0, abortSignal } = {}) {
         return null;
     }
 
-    async getLists() {
+    async getLists({ abortSignal } = {}) {
         return null;
     }
 
-    async getList(id, source, { playbackQuality = 0, limit, offset } = {}) {
+    async getList(id, source, { playbackQuality = 0, limit, offset, abortSignal } = {}) {
         return null;
     }
 
-    async getAlternativeTracks(track, source, { playbackQuality = 0, limit } = {}) {
+    async getAlternativeTracks(track, source, { playbackQuality = 0, limit, abortSignal } = {}) {
         return [];
     }
 
-    async getTrack(id, source, { playbackQuality = 0 } = {}) {
+    async getTrack(id, source, { playbackQuality = 0, abortSignal } = {}) {
         return null;
     }
 };
