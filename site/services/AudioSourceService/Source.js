@@ -43,6 +43,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _kaiPlanet = new Source("kaiplanet", "kaiplanet.net", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/kaiplanet.ico",
             `/proxy//${Source._assetBaseUrl}/favicon.ico`,
             `${Source._assetBaseUrl}/favicon.ico`,
         ],
@@ -50,6 +51,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _netEase = new Source("netease", "网易云音乐", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/netease.ico",
             "/proxy/https://s1.music.126.net/style/favicon.ico",
             `${Source._assetBaseUrl}/netease.ico`,
             "https://s1.music.126.net/style/favicon.ico",
@@ -58,6 +60,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _qq = new Source("qq", "QQ音乐", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/qq.ico",
             "/proxy/https://y.qq.com/favicon.ico",
             `${Source._assetBaseUrl}/qq.ico`,
             "https://y.qq.com/favicon.ico",
@@ -66,6 +69,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _soundCloud = new Source("soundcloud", "SoundCloud", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/soundcloud.ico",
             "/proxy/https://soundcloud.com/favicon.ico",
             `${Source._assetBaseUrl}/soundcloud.ico`,
             "https://soundcloud.com/favicon.ico",
@@ -74,6 +78,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _naver = new Source("naver", "네이버 뮤직", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/naver.ico",
             "/proxy/https://www.naver.com/favicon.ico",
             `${Source._assetBaseUrl}/naver.ico`,
             "https://www.naver.com/favicon.ico",
@@ -82,6 +87,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _qianQian = new Source("qianqian", "千千音乐", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/qianqian.ico",
             "/proxy/https://music.taihe.com/favicon.ico",
             `${Source._assetBaseUrl}/qianqian.ico`,
             "https://music.taihe.com/favicon.ico",
@@ -90,6 +96,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _kugou = new Source("kugou", "酷狗音乐", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/kugou.png",
             "/proxy/https://www.kugou.com/yy/static/images/play/logo.png",
             `${Source._assetBaseUrl}/kugou.ico`,
             "https://www.kugou.com/yy/static/images/play/logo.png",
@@ -100,6 +107,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _kuwo = new Source("kuwo", "酷我音乐", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/kuwo.ico",
             "/proxy/https://kuwo.cn/favicon.ico",
             `${Source._assetBaseUrl}/kuwo.ico`,
             "https://kuwo.cn/favicon.ico",
@@ -108,6 +116,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _migu = new Source("migu", "咪咕", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/migu.ico",
             "/proxy/https://www.migu.cn/favicon.ico",
             `${Source._assetBaseUrl}/migu.ico`,
             "https://www.migu.cn/favicon.ico",
@@ -116,6 +125,7 @@ module.exports = ({ TrackList, config }) => class Source {
 
     static _hearthis =  new Source("hearthis", "hearthis.at", {
         icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/hearthis.ico",
             "/proxy/https://hearthis.at/favicon.ico",
             `${Source._assetBaseUrl}/hearthis.ico`,
             "https://hearthis.at/favicon.ico",
