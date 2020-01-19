@@ -8,8 +8,8 @@ const crypto = require('crypto'),
     co = require('co');
 
 const client = new OSS({
-    accessKeyId: require('../credentials').storage.ali.development.accessKeyId,
-    accessKeySecret: require('../credentials').storage.ali.development.accessKeySecret,
+    accessKeyId: require('../credentials').default.storage.ali.development.accessKeyId,
+    accessKeySecret: require('../credentials').default.storage.ali.development.accessKeySecret,
     region: 'oss-ap-southeast-1',
     bucket: 'bubblesoft',
 });

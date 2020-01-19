@@ -68,7 +68,7 @@ module.exports = ({ AudioSourceService }) => class {
 
         app.post('/audio/alttracks', cache('5 minutes', () => true, {
             appendKey: (req) => JSON.stringify(req.body)
-        }), (req, res) => this.getAlternativeTracks(req, res));
+        }), (req, res) => this.getAlterTracks(req, res));
 
         app.get("/audio/stream/:source/:id/:options?", (req, res, next) => this.stream(req, res, next));
     }
@@ -130,7 +130,7 @@ module.exports = ({ AudioSourceService }) => class {
                 throw new Error("Source not provided or doesn't exist.");
             }
 
-            return (await this._audioSourceService.getLists(reqBody.source.trim()));
+            return (await this._audioSourceService.getLists({ sourceIds: reqBody.source.trim() }));
         }));
     }
 
@@ -173,7 +173,8 @@ module.exports = ({ AudioSourceService }) => class {
         res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getRecommend(reqBody.track ? {
             name: reqBody.track.name,
             artists: reqBody.track.artists,
-        } : null, reqBody.sources, {
+        } : null, {
+            sourceIds: reqBody.sources,
             playbackQuality: reqBody.playbackQuality || 0,
             retrievePlaybackSource: reqBody.retrievePlaybackSource || false,
             withPlaybackSourceOnly: reqBody.withPlaybackSourceOnly || false,
@@ -197,11 +198,11 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {Boolean} [withPlaybackSourceOnly=false] Optional Switch to return tracks with playback source only.
      * @apiParam {Number} [timeout] Optional Timeout for each call in milliseconds.
      */
-    async getAlternativeTracks(req, res) {
-        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlternativeTracks(reqBody.name, reqBody.artists, {
+    async getAlterTracks(req, res) {
+        res.json(await generateResponse(req.body, (reqBody) => this._audioSourceService.getAlterTracks(reqBody.name, reqBody.artists, {
             sourceIds: reqBody.sources,
-            exceptedIds: reqBody.exceptedTracks,
             exceptedSourceIds: reqBody.exceptedSources,
+            exceptedIds: reqBody.exceptedTracks,
             similarityRange: reqBody.similarityRange ? {
                 high: reqBody.similarityRange.high,
                 low: reqBody.similarityRange.low,
@@ -222,16 +223,16 @@ module.exports = ({ AudioSourceService }) => class {
      * @apiParam {String} [options] Optional Options object encoded as JSON string.
      * @apiParam {Number{0-1}} [options.quality=0] Optional Expected playback quality.
      * @apiParam {Number} [options.timeToWait=0] Optional Time to wait before fetching for sources with lower priority.
-     * @apiParam {Object} [options.alternativeTracks] Optional Options for alternative tracks
-     * @apiParam {Object} [options.alternativeTracks.track] Optional Track for which to get alternative tracks.
-     * @apiParam {String} [options.alternativeTracks.track.name] Optional Song name.
-     * @apiParam {String[]} [options.alternativeTracks.track.artists] Optional List of artist names.
-     * @apiParam {String[]} [options.alternativeTracks.sources] Optional Sources to search by.
-     * @apiParam {String[]} [options.alternativeTracks.exceptedSources] Optional Sources excepted for search.
-     * @apiParam {Boolean} [options.alternativeTracks.exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only.
-     * @apiParam {Object} [options.alternativeTracks.similarityRange] Optional Similarity range to filter the results.
-     * @apiParam {Number{0-1}} [options.alternativeTracks.similarityRange.high] Optional The highest similarity.
-     * @apiParam {Number{0-1}} [options.alternativeTracks.similarityRange.low] Optional The lowest similarity.
+     * @apiParam {Object} [options.alterTracks] Optional Options for alternative tracks
+     * @apiParam {Object} [options.alterTracks.track] Optional Track for which to get alternative tracks.
+     * @apiParam {String} [options.alterTracks.track.name] Optional Song name.
+     * @apiParam {String[]} [options.alterTracks.track.artists] Optional List of artist names.
+     * @apiParam {String[]} [options.alterTracks.sources] Optional Sources to search by.
+     * @apiParam {String[]} [options.alterTracks.exceptedSources] Optional Sources excepted for search.
+     * @apiParam {Boolean} [options.alterTracks.exactMatch=false] Optional Flag whether to return the results of which the similarity is 1 only.
+     * @apiParam {Object} [options.alterTracks.similarityRange] Optional Similarity range to filter the results.
+     * @apiParam {Number{0-1}} [options.alterTracks.similarityRange.high] Optional The highest similarity.
+     * @apiParam {Number{0-1}} [options.alterTracks.similarityRange.low] Optional The lowest similarity.
      */
     async stream(req, res, next) {
         const options = (() => {
@@ -246,17 +247,17 @@ module.exports = ({ AudioSourceService }) => class {
             const stream = await this._audioSourceService.getStream(req.params.id, req.params.source, {
                 quality: +options.quality || 0,
                 timeToWait: options.timeToWait || 0,
-                alternativeTracks: options.alternativeTracks ? {
-                    track: options.alternativeTracks.track ? {
-                        name: options.alternativeTracks.track.name,
-                        artistNames: options.alternativeTracks.track.artists,
+                alterTracks: options.alterTracks ? {
+                    track: options.alterTracks.track ? {
+                        name: options.alterTracks.track.name,
+                        artistNames: options.alterTracks.track.artists,
                     }: undefined,
-                    sourceIds: options.alternativeTracks.sources,
-                    exceptedSourceIds: options.alternativeTracks.exceptedSources,
-                    exactMatch: options.alternativeTracks.exactMatch,
-                    similarityRange: options.alternativeTracks.similarityRange ? {
-                        high: options.alternativeTracks.similarityRange.high,
-                        low: options.alternativeTracks.similarityRange.low,
+                    sourceIds: options.alterTracks.sources,
+                    exceptedSourceIds: options.alterTracks.exceptedSources,
+                    exactMatch: options.alterTracks.exactMatch,
+                    similarityRange: options.alterTracks.similarityRange ? {
+                        high: options.alterTracks.similarityRange.high,
+                        low: options.alterTracks.similarityRange.low,
                     } : undefined,
                 } : undefined,
             });

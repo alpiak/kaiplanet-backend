@@ -7,7 +7,7 @@ const express = require('express'),
 
 mongoose.Promise = Promise;
 
-const credentials = require('./credentials');
+const credentials = require('./credentials').default;
 
 const app = express();
 

@@ -18,7 +18,7 @@ passport.deserializeUser(function(id, done) {
     });
 });
 
-module.exports = function (app, options) {
+module.exports = function (options) {
     if (!options.successRedirect) {
         options.successRedirect = require('../config').basePath + '/home';
     }
@@ -27,11 +27,11 @@ module.exports = function (app, options) {
     }
 
     return {
-        init: function() {
+        init: function(app) {
             const kaiPlanetConnection = require("../db").kaiPlanetConnection;
 
             app.use(require('express-session')({
-                secret: require('../credentials').cookieSecret,
+                secret: require('../credentials').default.cookieSecret,
                 resave: true,
                 saveUninitialized: false,
                 cookie: { maxAge: 2628000000 },
@@ -79,7 +79,7 @@ module.exports = function (app, options) {
             app.use(passport.session());
         },
 
-        registerRoutes: function() {
+        registerRoutes: function(app) {
             app.get('/auth/baidu', function (req, res, next) {
                 passport.authenticate('baidu', {
                     callbackURL: '/auth/baidu/callback' + (req.query.redirect ? "?redirect=" + encodeURIComponent(req.query.redirect): '')
