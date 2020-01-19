@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node site/bubblesoft.js",
-    "debug": "node --inspect-brk site/bubblesoft.js",
+    "start": "ts-node-dev src/bubblesoft.js",
+    "debug": "ts-node-dev --inspect-brk -- src/bubblesoft.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -51,6 +51,9 @@
     "string-similarity": "^3.0.0"
   },
   "devDependencies": {
-    "http-proxy-middleware": "^0.20.0"
+    "http-proxy-middleware": "^0.20.0",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.4"
   }
 }
