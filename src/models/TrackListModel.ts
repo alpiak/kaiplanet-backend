@@ -1,4 +1,5 @@
 import { Schema } from "mongoose";
+
 // @ts-ignore
 import * as createOrUpdate from "mongoose-create-or-update";
 
@@ -48,4 +49,5 @@ const schema = new Schema({
 schema.index({ sourceId: 1, id: 1 });
 schema.plugin(createOrUpdate);
 
+// @ts-ignore
 module.exports = kaiPlanetConnection.model("TrackList", schema);

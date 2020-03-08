@@ -22,6 +22,7 @@ const CacheService = getCacheService(process.env.NODE_ENV);
 // @ts-ignore
 import * as getLocationService from "./services/LocationService";
 const LocationService = getLocationService(process.env.NODE_ENV);
+import ShorteningService from "./services/ShorteningService";
 
 // @ts-ignore
 import * as getAuth from "./controllers/auth";
@@ -32,16 +33,17 @@ const auth = getAuth({
 });
 // @ts-ignore
 import * as getAudioController from "./controllers/AudioController";
+const AudioController = getAudioController({ AudioSourceService });
 // @ts-ignore
 import * as getProxyController from "./controllers/ProxyController";
 const ProxyController = getProxyController(process.env.NODE_ENV);
+import ShortenController from "./controllers/ShortenController";
 // @ts-ignore
 import * as timeController from "./controllers/time";
 // @ts-ignore
 import * as userController from "./controllers/user";
 // @ts-ignore
 import * as weatherController from "./controllers/weather";
-const AudioController = getAudioController({ AudioSourceService });
 
 Bluebird.promisifyAll(fs);
 
@@ -56,6 +58,7 @@ const proxyService = new ProxyService();
 const cacheService = new CacheService();
 const audioSourceService = new AudioSourceService();
 const locationService = new LocationService();
+const shorteningService = new ShorteningService();
 
 audioSourceService.cacheService = cacheService;
 audioSourceService.locationService = locationService;
@@ -93,6 +96,7 @@ audioSourceService.proxyPool = proxyPool;
 
 const proxyController = new ProxyController();
 const audioController = new AudioController();
+const shortenController = new ShortenController(shorteningService);
 
 proxyController.proxyService = proxyService;
 proxyController.proxyPool = proxyPool;
@@ -110,6 +114,7 @@ userController.registerRoutes(app);
 timeController.registerRoutes(app);
 weatherController.registerRoutes(app);
 audioController.registerRoutes(app);
+shortenController.registerRoutes(app);
 
 // Static views
 

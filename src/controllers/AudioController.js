@@ -7,27 +7,7 @@ const { pipe } = require("mississippi");
 
 const cache = apicache.middleware;
 
-const generateResponse = (reqBody, callback) => {
-    const generate = async (query) => {
-        try {
-            return {
-                code: 1,
-                data: await callback(query),
-            };
-        } catch (e) {
-            return {
-                code: -1,
-                message: 'Query Failed - ' + e.message,
-            };
-        }
-    };
-
-    if (Array.isArray(reqBody)) {
-        return Promise.all(reqBody.map(generate));
-    }
-
-    return generate(reqBody);
-};
+const { generateResponse } = require("../libraries/utils");
 
 module.exports = ({ AudioSourceService }) => class {
     set audioSourceService(audioSourceService) {

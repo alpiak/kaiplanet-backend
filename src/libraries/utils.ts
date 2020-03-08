@@ -5,6 +5,38 @@ import { Request } from "express";
 
 import * as ProxyAgent from "proxy-agent";
 
+type ICallback = (query: object) => Promise<object>|object;
+
+interface IResponse {
+    code: number;
+    data?: any;
+    message?: string;
+}
+
+function generateResponse(reqBody: object, callback: ICallback): Promise<IResponse>;
+function generateResponse(reqBody: object[], callback: ICallback): Promise<IResponse[]>;
+function generateResponse(reqBody: object|object[], callback: ICallback): Promise<IResponse>|Promise<IResponse[]> {
+    const generate = async (query: object) => {
+        try {
+            return {
+                code: 1,
+                data: await callback(query),
+            };
+        } catch (e) {
+            return {
+                code: -1,
+                message: "Query Failed - " + e.message,
+            };
+        }
+    };
+
+    if (Array.isArray(reqBody)) {
+        return Promise.all(reqBody.map(generate));
+    }
+
+    return generate(reqBody);
+}
+
 interface IRequestOptions {
     protocol: string;
     hostname: string;
@@ -141,4 +173,4 @@ const getClientIp = (req: Request) => {
         || req.ip;
 };
 
-export { request, getClientIp };
+export { generateResponse, request, getClientIp };

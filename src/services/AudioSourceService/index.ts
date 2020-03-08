@@ -126,6 +126,7 @@ export default class AudioSourceService {
             }
 
             this.scheduleJobRunning = true;
+            console.log("Audio source service scheduled job running."); // tslint:disable-line
 
             try {
                 await this.cacheTrackLists();
