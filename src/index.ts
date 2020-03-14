@@ -10,7 +10,12 @@ import * as fs from "fs";
 import "abortcontroller-polyfill/dist/abortcontroller-polyfill-only";
 import * as compression from "compression";
 
+// @ts-ignore
+import * as any from "promise.any";
+
 import credentials from "./credentials";
+
+any.shim();
 
 // @ts-ignore
 import * as getProxyService from "./services/ProxyService";

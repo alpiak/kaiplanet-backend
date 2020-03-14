@@ -101,6 +101,15 @@ export default class Source {
         ],
     });
 
+    public static readonly ufo =  new Source("ufo", "飛碟聯播網", {
+        icons: [
+            "https://kai-player.oss-cn-shanghai.aliyuncs.com/ufo.jpeg",
+            "/proxy/http://www.uforadio.com.tw/themes/ufo/images/logo.jpg",
+            `${config.assetBaseUrl}/ufo.ico`,
+            "http://www.uforadio.com.tw/themes/ufo/images/logo.jpg",
+        ],
+    });
+
     public static fromId(id: string) {
         if (id === undefined || id === null) {
             return null;

@@ -75,5 +75,12 @@ export default {
         nodeSoundCloud: {
             clientId: "4bfb6af6b3fc1982ae613dbcb6f0d1d5",
         },
+        ufoNetwork: {
+            instances: [{
+                host: "cast.uforadio.com.tw",
+                port: 8000,
+                protocol: "http",
+            }],
+        },
     },
 };

@@ -1,6 +1,9 @@
 import * as dns from "dns";
 import * as url from "url";
 
+// @ts-ignore
+import { simplify } from "hanzi-tools";
+
 import * as schedule from "node-schedule";
 import { compareTwoStrings, findBestMatch } from "string-similarity";
 
@@ -29,6 +32,7 @@ import MusicApiProducer from "./producers/MusicApiProducer";
 import MusicInterfaceProducer from "./producers/MusicInterfaceProducer";
 import NeteaseCloudMusicApiProducer from "./producers/NeteaseCloudMusicApiProducer";
 import NodeSoundCloudProducer from "./producers/NodeSoundCloudProducer";
+import UFONetworkProducer from "./producers/UFONetworkProducer";
 
 import { getConfig } from "./utils";
 
@@ -54,6 +58,13 @@ interface IGetStreamOptions {
     };
 }
 
+const cleanText = (text: string, removeParen = false) => {
+    const parenRegEx = /[(（](?:\S|\s)+?[)）]/g;
+    const blankCharRegEx = /\s+/g;
+
+    return simplify((removeParen ? text.replace(parenRegEx, "").replace(blankCharRegEx, "") : text).toLowerCase());
+};
+
 export default class AudioSourceService {
     public static QUEUE_MAX_SIZE = config.caching.queueMaxSize;
 
@@ -68,6 +79,7 @@ export default class AudioSourceService {
         HearthisProducer,
         KuGouMobileCDNProducer,
         MiguMusicApiProducer,
+        UFONetworkProducer,
     ];
 
     public static getSources() {
@@ -173,6 +185,7 @@ export default class AudioSourceService {
 
             playbackSources: track.playbackSources && track.playbackSources.map((p) => ({
                 cached: p.cached,
+                live: p.live,
                 quality: p.quality,
                 statical: p.statical,
                 urls: p.urls,
@@ -236,15 +249,15 @@ export default class AudioSourceService {
 
         this.addToCachingQueue(tracks);
 
-        const keywordsInLowerCase = keywords.toLowerCase();
+        const keywordsCleaned = cleanText(keywords);
 
-        return findBestMatch(keywordsInLowerCase, tracks.map(({ name }) => name.toLowerCase())).ratings
+        return findBestMatch(keywordsCleaned, tracks.map(({ name }) => cleanText(name))).ratings
             .map(({ rating }, i) => {
                 const track = tracks[i];
 
                 const artistsSimilarity = track.artists
-                    .map((a) => compareTwoStrings(a.name.toLowerCase(), keywordsInLowerCase))
-                    .reduce((total, artistRating) => total + artistRating, 0) / track.artists.length;
+                    .map((a) => compareTwoStrings(cleanText(a.name), keywordsCleaned))
+                    .reduce((total, artistRating) => total + artistRating) / track.artists.length;
 
                 return {
                     artists: track.artists.map((a) => ({name: a.name})),
@@ -256,6 +269,7 @@ export default class AudioSourceService {
 
                     playbackSources: track.playbackSources ? track.playbackSources.map((p) => ({
                         cached: p.cached,
+                        live: p.live,
                         quality: p.quality,
                         statical: p.statical,
                         urls: p.urls,
@@ -420,6 +434,7 @@ export default class AudioSourceService {
 
             playbackSources: (track.playbackSources && track.playbackSources.map((p: any) => ({
                 cached: p.cached,
+                live: p.live,
                 quality: p.quality,
                 statical: p.statical,
                 urls: p.urls,
@@ -443,6 +458,7 @@ export default class AudioSourceService {
 
             return playbackSources.map((p) => ({
                 cached: p.cached,
+                live: p.live,
                 quality: p.quality,
                 statical: p.statical,
                 urls: p.urls,
@@ -509,6 +525,7 @@ export default class AudioSourceService {
                                 if  (playbackSources && playbackSources.length) {
                                     return playbackSources.map((p: PlaybackSource) => ({
                                         cached: p.cached,
+                                        live: p.live,
                                         quality: p.quality,
                                         statical: p.statical,
                                         urls: p.urls,
@@ -615,6 +632,7 @@ export default class AudioSourceService {
                             if  (playbackSources && playbackSources.length) {
                                 return playbackSources.map((p) => ({
                                     cached: p.cached,
+                                    live: p.live,
                                     quality: p.quality,
                                     statical: p.statical,
                                     urls: p.urls,
@@ -707,25 +725,52 @@ export default class AudioSourceService {
             return [];
         }
 
-        const fixName = (text: string) => {
-            const parenRegEx = /(:?\(|\uff08)(:?\S|\s)+?(:?\)|\uff09)/g;
-            const blankCharRegEx = /\s+/g;
-
-            return text.replace(parenRegEx, "").replace(blankCharRegEx, "").toLowerCase();
-        };
-
-        const altTracks = (findBestMatch(fixName(name), tracks.map((t) => fixName(t.name))).ratings
-            .map(({ rating }, i) => {
+        const altTracks = (findBestMatch(cleanText(name, true), tracks.map((t) => cleanText(t.name, true))).ratings
+            .map(({ rating, target }, i) => {
                 const track = tracks[i];
 
-                const artistsSimilarity = track.artists
+                const similarity = (() => {
+                    const artistsSimilarity = track.artists
 
-                    .map((a: Artist) =>
-                        findBestMatch(fixName(a.name), artistNames.map((n) => fixName(n))).bestMatch.rating)
+                        .map((artist: Artist) =>
+                            findBestMatch(cleanText(artist.name), artistNames.map((a) =>
+                                cleanText(a))).bestMatch.rating)
 
-                    .reduce((total: number, artistRating: number) => total + artistRating, 0) / track.artists.length;
+                        .reduce((total: number, artistRating: number) => total + artistRating) / track.artists.length;
 
-                const similarity = rating * .6 + artistsSimilarity * .4;
+                    const actualSimilarity = rating * .6 + artistsSimilarity * .4;
+
+                    const lowPriorityWords = [
+                        "concert",
+                        "cover",
+                        "inst.",
+                        "instrumental",
+                        "karaoke",
+                        "live",
+                        "现场",
+                        "伴奏",
+                    ];
+
+                    const lowPriorityPattern = `[(（](?:\\S|\\s)*(?:${lowPriorityWords.join("|")})(?:\\S|\\s)*[)）]`;
+
+                    if (new RegExp(lowPriorityPattern).test(cleanText(track.name))) {
+                        return Math.min(actualSimilarity, (() => {
+                            if (similarityRange) {
+                                if (similarityRange.low) {
+                                    return similarityRange.low;
+                                }
+
+                                if (similarityRange.high) {
+                                    return similarityRange.high * .5;
+                                }
+                            }
+
+                            return .5;
+                        })());
+                    }
+
+                    return actualSimilarity;
+                })();
 
                 if (exactMatch && similarity < 1) {
                     return null;
@@ -742,7 +787,8 @@ export default class AudioSourceService {
                     }
                 }
 
-                const playbackSources = track.playbackSources.length ? track.playbackSources : undefined;
+                const playbackSources = (track.playbackSources && track.playbackSources.length && track.playbackSources)
+                    || undefined;
 
                 return {
                     artists: track.artists.map((a: Artist) => ({ name: a.name })),
@@ -754,6 +800,7 @@ export default class AudioSourceService {
 
                     playbackSources: playbackSources && playbackSources.map((p: PlaybackSource) => ({
                         cached: p.cached,
+                        live: p.live,
                         quality: p.quality,
                         statical: p.statical,
                         urls: p.urls,
@@ -947,7 +994,7 @@ export default class AudioSourceService {
                 return [];
             }
 
-            return playbackSources.map((p) => p.urls).flat();
+            return playbackSources.filter((p) => !p.live).flatMap((p) => p.urls);
         })()).map((streamUrl) => {
             const fixedUrl = ((urlToFix) => {
                 if (!/:/.test(urlToFix)) {

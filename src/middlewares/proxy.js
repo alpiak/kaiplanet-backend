@@ -252,6 +252,7 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                     method: req.method,
                     protocol: targetUrl.protocol,
                     host: targetUrl.host,
+                    hostname: targetUrl.hostname,
                     port: targetUrl.port,
                     path: targetUrl.path,
                     headers: reqHeaders,
@@ -302,11 +303,11 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
                 });
             });
 
-            return await Promise.race([sendRequest(), Promise.race(await (async () => {
+            return await Promise.any([sendRequest(), Promise.any(await (async () => {
                 proxies = await (async (url) => {
                     try {
                         const ip = await new Promise((resolve, reject) => {
-                            dns.lookup(url.host, (err, address) => {
+                            dns.lookup(url.hostname, (err, address) => {
                                 if (err) {
                                     reject(err);
                                 }
@@ -335,9 +336,11 @@ module.exports = ({ proxyPool, cacheService, locationService }) => async (req, r
 
         raceEnded = true;
 
+        const cache = originRes.headers["cache-control"] !== "no-cache";
+
         let deleteCacheTimeout;
 
-        if (!cacheService.exists(targetUrl.href) && originRes.statusCode >= 200 && originRes.statusCode < 300) {
+        if (cache && !cacheService.exists(targetUrl.href) && originRes.statusCode >= 200 && originRes.statusCode < 300) {
             const fullData = (() => {
                 const contentRangeHeader = originRes.headers["content-range"];
 
