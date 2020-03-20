@@ -13,6 +13,8 @@ import * as compression from "compression";
 // @ts-ignore
 import * as any from "promise.any";
 
+import ProxyPool from "./services/ProxyService/ProxyPool";
+
 import credentials from "./credentials";
 
 any.shim();
@@ -39,9 +41,7 @@ const auth = getAuth({
 // @ts-ignore
 import * as getAudioController from "./controllers/AudioController";
 const AudioController = getAudioController({ AudioSourceService });
-// @ts-ignore
-import * as getProxyController from "./controllers/ProxyController";
-const ProxyController = getProxyController(process.env.NODE_ENV);
+import ProxyController from "./controllers/ProxyController";
 import ShortenController from "./controllers/ShortenController";
 // @ts-ignore
 import * as timeController from "./controllers/time";
@@ -68,45 +68,14 @@ const shorteningService = new ShorteningService();
 audioSourceService.cacheService = cacheService;
 audioSourceService.locationService = locationService;
 
-const proxyPool = {
-    getProxyList(areaCode: string, protocol?: string) {
-        return proxyService.getProxyList(areaCode, protocol);
-    },
-
-    // TODO: remove this function after related code updated
-    getRandomProxy(areaCode: string) {
-        const proxies = this.getProxyList(areaCode).slice(0, ProxyService.MAX_PROXY_NUM);
-
-        return proxies[Math.floor(proxies.length * Math.random())];
-    },
-
-    getRandomProxies(areaCode = "GLOBAL", protocol = "all", num = 1, range = .5) {
-        const proxies = this.getProxyList(areaCode, protocol);
-
-        if (proxies.length <= num) {
-            return proxies;
-        }
-
-        const rangedProxies = proxies.slice(0, Math.ceil(proxies.length * range));
-
-        if (rangedProxies.length <= num) {
-            return rangedProxies;
-        }
-
-        return rangedProxies.slice(0, num);
-    },
-};
+const proxyPool = new ProxyPool({ proxyService });
 
 audioSourceService.proxyPool = proxyPool;
 
-const proxyController = new ProxyController();
+const proxyController = new ProxyController({ proxyPool, proxyService, cacheService, locationService });
 const audioController = new AudioController();
 const shortenController = new ShortenController(shorteningService);
 
-proxyController.proxyService = proxyService;
-proxyController.proxyPool = proxyPool;
-proxyController.cacheService = cacheService;
-proxyController.locationService = locationService;
 audioController.audioSourceService = audioSourceService;
 audioController.proxyService = proxyService;
 

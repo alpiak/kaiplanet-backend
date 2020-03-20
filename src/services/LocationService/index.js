@@ -31,16 +31,20 @@ module.exports = (env = "development") => {
                         data += chunk;
                     });
                     res.on('end', () => {
-                        const dataParsed = JSON.parse(data);
+                        try {
+                            const parsedData = JSON.parse(data);
 
-                        resolve({
-                            coords: {
-                                latitude: dataParsed.lat,
-                                longitude: dataParsed.lon,
-                            },
-                            city: dataParsed.city,
-                            areaCode: dataParsed.countryCode,
-                        });
+                            resolve({
+                                coords: {
+                                    latitude: parsedData.lat,
+                                    longitude: parsedData.lon,
+                                },
+                                city: parsedData.city,
+                                areaCode: parsedData.countryCode,
+                            });
+                        } catch (e) {
+                            reject(e);
+                        }
                     });
                 })
                     .on('error', (err) => {
