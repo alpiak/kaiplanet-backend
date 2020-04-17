@@ -1,3 +1,5 @@
+const url = require("url");
+
 const phantom = require('phantom');
 
 module.exports = ({ Area, Proxy, Producer, config }) => class XiciDailiProducer extends Producer {
@@ -12,16 +14,22 @@ module.exports = ({ Area, Proxy, Producer, config }) => class XiciDailiProducer 
             return [];
         }
 
-        const instance = await phantom.create();
+        const instance = await (async () => {
+            if (proxy) {
+                const proxyUrl = url.parse(proxy);
+
+                return await phantom.create([
+                    `--proxy=${proxyUrl.host}:${proxyUrl.port}`,
+                    '--ignore-ssl-errors=yes',
+                    '--load-images=no',
+                ]);
+            }
+
+            return await phantom.create();
+        })();
 
         try {
-            const page = await (async () => {
-                if (proxy) {
-                    return await instance.createPage([`--proxy=${proxy.host}:${proxy.port}`]);
-                }
-
-                return await instance.createPage();
-            })();
+            const page = await instance.createPage();
 
             await page.setting("userAgent", config.producers.xiciDaili.userAgent);
 

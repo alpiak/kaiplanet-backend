@@ -107,6 +107,7 @@ const request = (options: IRequestOptions) => new Promise<object>((resolve, reje
 
     const requestOptions: any = {
         ...options,
+
         path: (() => {
             if (options.method.toUpperCase() === "GET") {
                 return options.path + "?" + encodeURI([dataStr, queries].filter((queryStr) => queryStr).join("&"));
@@ -116,6 +117,7 @@ const request = (options: IRequestOptions) => new Promise<object>((resolve, reje
 
             return options.path;
         })(),
+
         protocol: options.protocol + ":",
     };
 

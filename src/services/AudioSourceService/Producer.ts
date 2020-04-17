@@ -31,7 +31,7 @@ export default class Producer implements IProducer {
         return new TrackList();
     }
 
-    public async getPlaybackSources(id: string, source: Source): Promise<PlaybackSource[]> {
+    public async getPlaybackSources(id: string, source: Source, options: IMethodOptions): Promise<PlaybackSource[]> {
         return [];
     }
 

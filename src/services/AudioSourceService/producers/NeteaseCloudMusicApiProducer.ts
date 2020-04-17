@@ -50,7 +50,7 @@ class NeteaseCloudMusicApiTrackList extends TrackList<any> {
 export default class NeteaseCloudMusicApiProducer extends Producer implements IProducer {
     public static readonly sources = [Source.netEase];
     public static readonly instances = config.producers.neteaseCloudMusicApi.instances
-        .map((instance: any) => new Instance(instance.host, instance.port, instance.protocol));
+        .map(({ host, port, protocol }) => new Instance(host, port, protocol));
 
     private static listName = new Map([
         [Source.netEase, ["云音乐热歌榜", "美国Billboard周榜", "日本Oricon周榜", "韩国Mnet排行榜周榜", "台湾Hito排行榜",
@@ -358,33 +358,45 @@ export default class NeteaseCloudMusicApiProducer extends Producer implements IP
     }
 
     public async getAlterTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IOptions = {}) {
-        return (await this.search([
+        return await (await this.search([
             track.name,
-            ...track.artists.map((artist) => artist.name),
+            ...track.artists.map((a) => a.name),
         ].join(","), source, { playbackQuality, limit })).values();
     }
 
-    public async getTrack(id: string, source: Source, { playbackQuality = 0 } = {}) {
-        const track = await retry(async () => {
+    public async getTrack(id: string, source: Source, { playbackQuality = 0, abortSignal }: IOptions = {}) {
+        const track = await (async () => {
             try {
-                return (await this.neteaseCloudMusicApi.getSongDetail([String(id)], {
-                    proxy: this.proxyPool.getRandomProxy("CN") || undefined,
-                }))[0];
+                return await retry(async () => {
+                    try {
+                        return (await this.neteaseCloudMusicApi.getSongDetail([id], {
+                            abortSignal,
+                            proxy: this.proxyPool.getRandomProxy("CN") || undefined,
+                        }))[0];
+                    } catch (e) {
+                        // console.log(e);
+
+                        throw e;
+                    }
+                }, this.proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
             } catch (e) {
                 // console.log(e);
 
-                throw e;
+                try {
+                    return (await this.neteaseCloudMusicApi.getSongDetail([id], { abortSignal }))[0];
+                } catch (e) {
+                    // console.log(e);
+
+                    throw e;
+                }
             }
-        }, this.proxyPool.getRandomProxy("CN") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+        })();
 
         if (track) {
-            const playbackSources = await this.getPlaybackSources(track.id, source);
-
             return new Track(String(track.id), track.name, track.ar.map((artist: Artist) => new Artist(artist.name)),
                 source, {
                     duration: track.dt,
                     picture: (track.al && track.al.picUrl) || undefined,
-                    playbackSources: playbackSources && playbackSources.length ? playbackSources : undefined,
                 });
         }
 

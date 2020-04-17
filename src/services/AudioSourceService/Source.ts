@@ -359,7 +359,9 @@ export default class Source {
             try {
                 const tracks = await producer.getAlterTracks(track, this, { playbackQuality, limit });
 
-                return tracks || null;
+                if (tracks && tracks.length) {
+                    return tracks;
+                }
             } catch (e) {
                 err = e;
             }

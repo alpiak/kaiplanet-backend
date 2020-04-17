@@ -103,7 +103,7 @@ export default class KugouMusicApiProducer extends Producer {
     }
 
     public async getAlternativeTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IOptions = {}) {
-        return (await source.search([
+        return await (await source.search([
             track.name,
             ...track.artists.map((a) => a.name),
         ].join(","), { playbackQuality, limit })).values();

@@ -149,7 +149,7 @@ export default class MusicInterfaceProducer extends Producer {
     }
 
     public async getAlterTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IOptions = {}) {
-        return (await this.search([
+        return await (await this.search([
             track.name,
             ...track.artists.map((artist) => artist.name),
         ].join(","), source, { playbackQuality, limit })).values();

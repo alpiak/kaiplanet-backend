@@ -12,7 +12,6 @@ export default {
             instances: [
                 {
                     host: "api-v2.hearthis.at",
-                    protocol: "https",
                 },
             ],
         },
@@ -59,9 +58,25 @@ export default {
                 },
                 {
                     host: "music.niubishanshan.top",
-                    protocol: "https",
                 },
             ],
+        },
+        naverAPIs: {
+            instances: [{
+                host: "apis.naver.com",
+            }],
+        },
+        naverMusic: {
+            instances: [{
+                host: "music.naver.com",
+            }],
+            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36",
+        },
+        naverMusicMobile: {
+            instances: [{
+                host: "m.music.naver.com",
+            }],
+            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1",
         },
         neteaseCloudMusicApi: {
             instances: [

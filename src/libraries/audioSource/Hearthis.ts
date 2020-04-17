@@ -11,7 +11,7 @@ export default class {
     private readonly port: number;
     private readonly protocol: string;
 
-    constructor(host: string, port: number, protocol: string = "https") {
+    constructor(host: string, port: number, protocol = "https") {
         this.host = host;
 
         if (typeof port === "undefined") {

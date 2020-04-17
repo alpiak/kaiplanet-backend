@@ -30,6 +30,9 @@ import KugouMusicApiProducer from "./producers/KugouMusicApiProducer";
 import MiguMusicApiProducer from "./producers/MiguMusicApiProducer";
 import MusicApiProducer from "./producers/MusicApiProducer";
 import MusicInterfaceProducer from "./producers/MusicInterfaceProducer";
+import NaverAPIsProducer from "./producers/NaverAPIsProducer";
+import NaverMusicMobileProducer from "./producers/NaverMusicMobileProducer";
+import NaverMusicProducer from "./producers/NaverMusicProducer";
 import NeteaseCloudMusicApiProducer from "./producers/NeteaseCloudMusicApiProducer";
 import NodeSoundCloudProducer from "./producers/NodeSoundCloudProducer";
 import UFONetworkProducer from "./producers/UFONetworkProducer";
@@ -80,6 +83,9 @@ export default class AudioSourceService {
         KuGouMobileCDNProducer,
         MiguMusicApiProducer,
         UFONetworkProducer,
+        NaverMusicMobileProducer,
+        NaverMusicProducer,
+        NaverAPIsProducer,
     ];
 
     public static getSources() {
@@ -118,9 +124,9 @@ export default class AudioSourceService {
     constructor() {
         AudioSourceService.Producers.forEach((Producer) => {
             if (Producer.instances && Producer.instances.length) {
-                return Producer.instances.forEach((instance: Instance) => {
+                return Producer.instances.forEach(({ host, port, protocol }: Instance) => {
                     Producer.sources.forEach((source) => {
-                        source.producers.push(new Producer(instance.host, instance.port, instance.protocol));
+                        source.producers.push(new Producer(host, port, protocol));
                     });
                 });
             }
@@ -208,6 +214,8 @@ export default class AudioSourceService {
             return ids.map((sourceId) => Source.fromId(sourceId));
         })(sourceIds);
 
+        let err;
+
         const trackLists = await Promise.all((sources.filter((s) => s) as Source[]).map((source) => (async () => {
             try {
                 return await source.search(keywords, {
@@ -215,7 +223,9 @@ export default class AudioSourceService {
                     playbackQuality,
                     producerRating,
                 });
-            } catch {
+            } catch (e) {
+                err = e;
+
                 return new TrackList();
             }
         })()));
@@ -244,6 +254,10 @@ export default class AudioSourceService {
         const tracks = (await Promise.all(trackPromises)).filter((t) => t) as Track[];
 
         if (!tracks.length) {
+            if (err) {
+                throw err;
+            }
+
             return [];
         }
 
@@ -255,12 +269,18 @@ export default class AudioSourceService {
             .map(({ rating }, i) => {
                 const track = tracks[i];
 
-                const artistsSimilarity = track.artists
-                    .map((a) => compareTwoStrings(cleanText(a.name), keywordsCleaned))
-                    .reduce((total, artistRating) => total + artistRating) / track.artists.length;
+                const artistsSimilarity = (() => {
+                    if (!track.artists) {
+                        return 0;
+                    }
+
+                    return track.artists
+                        .map((a) => compareTwoStrings(cleanText(a.name), keywordsCleaned))
+                        .reduce((total, artistRating) => total + artistRating, 0) / track.artists.length;
+                })();
 
                 return {
-                    artists: track.artists.map((a) => ({name: a.name})),
+                    artists: track.artists.map((a) => ({ name: a.name, aliases: a.aliases })),
                     duration: track.duration,
                     id: track.id,
                     name: track.name,
@@ -425,7 +445,7 @@ export default class AudioSourceService {
         this.addToCachingQueue(tracks);
 
         return tracks.map((track: any) => ({
-            artists: track.artists.map((a: any) => ({name: a.name})),
+            artists: track.artists.map((a: Artist) => ({ name: a.name, aliases: a.aliases })),
             duration: track.duration,
             id: track.id,
             name: track.name,
@@ -549,7 +569,7 @@ export default class AudioSourceService {
                                 abortController.abort();
 
                                 return {
-                                    artists: artists.map((a) => ({name: a.name})),
+                                    artists: artists.map((a) => ({ name: a.name, aliases: a.aliases })),
                                     duration,
                                     id,
                                     name,
@@ -656,7 +676,7 @@ export default class AudioSourceService {
                             abortController.abort();
 
                             return {
-                                artists: artists.map((a) => ({name: a.name})),
+                                artists: artists.map((a) => ({ name: a.name, aliases: a.aliases })),
                                 duration,
                                 id,
                                 name,
@@ -702,6 +722,8 @@ export default class AudioSourceService {
             return ids.map((sourceId) => Source.fromId(sourceId)).filter((s) => s) as Source[];
         })(sourceIds).filter((source) => !exceptedSourceIds.reduce((matched, e) => matched || source.id === e, false));
 
+        let err;
+
         const tracks = (await Promise.all(sources.map(async (source) => {
             try {
                 return await Promise.race([
@@ -710,9 +732,11 @@ export default class AudioSourceService {
                         playbackQuality,
                         producerRating,
                     }),
-                ].concat(timeout ? new Promise<null>((resolve) => setTimeout(() => resolve(null), timeout)) : []));
+                ].concat(timeout ? new Promise<null>((resolve, reject) => setTimeout(() => reject(new Error("Timeout fetching tracks.")), timeout)) : []));
             } catch (e) {
                 // console.log(e);
+
+                err = e;
 
                 return null;
             }
@@ -722,6 +746,10 @@ export default class AudioSourceService {
             .filter((matchedTrack) => !exceptedIds.includes(matchedTrack.id));
 
         if (!tracks.length) {
+            if (err) {
+                throw err;
+            }
+
             return [];
         }
 
@@ -791,7 +819,7 @@ export default class AudioSourceService {
                     || undefined;
 
                 return {
-                    artists: track.artists.map((a: Artist) => ({ name: a.name })),
+                    artists: track.artists.map((a: Artist) => ({ name: a.name, aliases: a.aliases })),
                     duration: track.duration,
                     id: track.id,
                     name: track.name,

@@ -118,7 +118,7 @@ export default class HearthisProducer extends Producer { // tslint:disable-line
     }
 
     public async getAlterTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IMethodOptions = {}) {
-        return (await this.search([
+        return await (await this.search([
             track.name,
             ...track.artists.map((artist) => artist.name),
         ].join(","), source, { playbackQuality, limit })).values();

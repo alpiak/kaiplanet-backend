@@ -163,7 +163,7 @@ export default class MiguMusicApiProducer extends Producer {
         })();
 
         if (tracks) {
-            return tracks.map(({ songData = {} }: { songData: any }) => {
+            return tracks.filter((t: any) => t.songData).map(({ songData = {} }: { songData: any }) => {
                 const playbackSources = [
                     songData.listenUrl,
                     // songData.lisCr,
@@ -194,7 +194,7 @@ export default class MiguMusicApiProducer extends Producer {
     }
 
     public async getAlterTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IOptions = {}) {
-        return (await this.search([
+        return await (await this.search([
             track.name,
             ...track.artists.map((a) => a.name),
         ].join(","), source, { playbackQuality, limit })).values();

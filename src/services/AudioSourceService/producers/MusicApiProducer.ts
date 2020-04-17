@@ -183,7 +183,7 @@ export default class MusicApiProducer extends Producer {
     }
 
     public async getAlterTracks(track: Track, source: Source, { playbackQuality = 0, limit }: IMethodOptions = {}) {
-        return (await this.search([track.name, ...track.artists.map((a) => a.name)].join(","), source, {
+        return await (await this.search([track.name, ...track.artists.map((a) => a.name)].join(","), source, {
             limit,
             playbackQuality,
         })).values();

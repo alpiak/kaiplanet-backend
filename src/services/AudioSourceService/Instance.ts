@@ -14,4 +14,8 @@ export default class {
 
         this.protocol = protocol;
     }
+
+    public toString() {
+        return `${this.protocol}://${this.host}:${this.port}`;
+    }
 }
