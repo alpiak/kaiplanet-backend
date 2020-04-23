@@ -23,6 +23,7 @@ any.shim();
 import * as getProxyService from "./services/ProxyService";
 const ProxyService = getProxyService(process.env.NODE_ENV);
 import AudioSourceService from "./services/AudioSourceService";
+import BrowserService from "./services/BrowserService";
 // @ts-ignore
 import * as getCacheService from "./services/CacheService";
 const CacheService = getCacheService(process.env.NODE_ENV);
@@ -50,6 +51,23 @@ import * as userController from "./controllers/user";
 // @ts-ignore
 import * as weatherController from "./controllers/weather";
 
+import Instance from "./services/AudioSourceService/Instance";
+
+import HearthisProducer from "./services/AudioSourceService/producers/HearthisProducer";
+import KaiPlanetProducer from "./services/AudioSourceService/producers/KaiPlanetProducer";
+import KuGouMobileCDNProducer from "./services/AudioSourceService/producers/KuGouMobileCDNProducer";
+import KuGouMobileProducer from "./services/AudioSourceService/producers/KuGouMobileProducer";
+import KugouMusicApiProducer from "./services/AudioSourceService/producers/KugouMusicApiProducer";
+import MiguMusicApiProducer from "./services/AudioSourceService/producers/MiguMusicApiProducer";
+import MusicApiProducer from "./services/AudioSourceService/producers/MusicApiProducer";
+import MusicInterfaceProducer from "./services/AudioSourceService/producers/MusicInterfaceProducer";
+import NaverAPIsProducer from "./services/AudioSourceService/producers/NaverAPIsProducer";
+import NaverMusicMobileProducer from "./services/AudioSourceService/producers/NaverMusicMobileProducer";
+import NaverMusicProducer from "./services/AudioSourceService/producers/NaverMusicProducer";
+import NeteaseCloudMusicApiProducer from "./services/AudioSourceService/producers/NeteaseCloudMusicApiProducer";
+import NodeSoundCloudProducer from "./services/AudioSourceService/producers/NodeSoundCloudProducer";
+import UFONetworkProducer from "./services/AudioSourceService/producers/UFONetworkProducer";
+
 Bluebird.promisifyAll(fs);
 
 const app = express();
@@ -64,9 +82,47 @@ const cacheService = new CacheService();
 const audioSourceService = new AudioSourceService();
 const locationService = new LocationService();
 const shorteningService = new ShorteningService();
+const browserService = new BrowserService();
 
 audioSourceService.cacheService = cacheService;
 audioSourceService.locationService = locationService;
+
+[
+    KaiPlanetProducer,
+    NeteaseCloudMusicApiProducer,
+    MusicInterfaceProducer,
+    KugouMusicApiProducer,
+    MusicApiProducer,
+    KuGouMobileProducer,
+    NodeSoundCloudProducer,
+    HearthisProducer,
+    KuGouMobileCDNProducer,
+    MiguMusicApiProducer,
+    UFONetworkProducer,
+    NaverMusicMobileProducer,
+    NaverMusicProducer,
+    NaverAPIsProducer,
+].forEach((Producer) => {
+    if (!Producer.instances || !Producer.instances.length) {
+        const producer = new Producer();
+
+        return Producer.sources.forEach((source) => {
+            source.producers.push(producer);
+        });
+    }
+
+    Producer.instances.forEach(({ host, port, protocol }: Instance) => {
+        const producer = new Producer(host, port, protocol);
+
+        if (producer instanceof NaverMusicProducer || producer instanceof NaverMusicMobileProducer) {
+            producer.browserService = browserService;
+        }
+
+        Producer.sources.forEach((source) => {
+            source.producers.push(producer);
+        });
+    });
+});
 
 const proxyPool = new ProxyPool({ proxyService });
 

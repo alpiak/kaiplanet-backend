@@ -7,7 +7,6 @@ interface IOptions {
     proxy?: string;
     abortSignal?: AbortSignal;
     enableJavaScript?: boolean;
-    includeThumb?: boolean;
     browserPageInstance?: Page;
 }
 
@@ -85,8 +84,7 @@ export default class NaverMusic {
                         artistTriggerEl.dispatchEvent(event);
 
                         return [
-                            ...document
-                                .querySelectorAll("#scroll_tl_artist a"),
+                            ...document.querySelectorAll("#scroll_tl_artist a"),
                         ].map((artistWrapEl) => artistWrapEl instanceof HTMLAnchorElement && artistWrapEl.innerText);
                     })(),
 
@@ -134,13 +132,10 @@ export default class NaverMusic {
         }, { proxy, abortSignal, browserPageInstance });
     }
 
-    public async getTop100(domain: string, {
-        includeThumb = true,
-        proxy,
-        abortSignal,
-        browserPageInstance,
-    }: IOptions = {}) {
-        const list = await this.executeInBrowser(`${this.rootUrl}${NaverMusic.GET_TOP_ONE_HUNDRED_PATH }?domain=${domain}`, async () => {
+    public async getTop100(domain: string, { proxy, abortSignal, browserPageInstance }: IOptions = {}) {
+        const url = `${this.rootUrl}${NaverMusic.GET_TOP_ONE_HUNDRED_PATH }?domain=${domain}`;
+
+        return await this.executeInBrowser(url, async () => {
             const tracks = [];
 
             for (const el of [...document.querySelectorAll("._tracklist_move")].slice(1)) {
@@ -198,12 +193,12 @@ export default class NaverMusic {
                 tracks,
             };
         }, { proxy, abortSignal, browserPageInstance });
+    }
 
-        if (!includeThumb) {
-            return list;
-        }
+    public async getTop100Thumbs(domain: string, { proxy, abortSignal, browserPageInstance }: IOptions = {}) {
+        const url = `${this.rootUrl}${NaverMusic.GET_TOP_ONE_HUNDRED_PATH }?domain=${domain}`;
 
-        const thumbs = await this.executeInBrowser(`${this.rootUrl}${NaverMusic.GET_TOP_ONE_HUNDRED_PATH }?domain=${domain}`, async () => {
+        return await this.executeInBrowser(url, async () => {
             const map: any = {};
 
             for (const el of [...document.querySelectorAll("._tracklist_move")].slice(1)) {
@@ -220,14 +215,6 @@ export default class NaverMusic {
 
             return map;
         }, { proxy, abortSignal, enableJavaScript: false, browserPageInstance });
-
-        list.tracks.forEach((t: any) => {
-            if (thumbs[t.id]) {
-                t.thumb = thumbs[t.id];
-            }
-        });
-
-        return list;
     }
 
     private async executeInBrowser(url: string, callback: () => any, {

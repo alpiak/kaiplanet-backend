@@ -15,27 +15,11 @@ import TrackListModel from "../../models/TrackListModel";
 import IOptions from "./IServiceMethodOptions";
 
 import Artist from "./Artist";
-import Instance from "./Instance";
 import List from "./List";
 import PlaybackSource from "./PlaybackSource";
 import Source from "./Source";
 import Track from "./Track";
 import TrackList from "./TrackList";
-
-import HearthisProducer from "./producers/HearthisProducer";
-import KaiPlanetProducer from "./producers/KaiPlanetProducer";
-import KuGouMobileCDNProducer from "./producers/KuGouMobileCDNProducer";
-import KuGouMobileProducer from "./producers/KuGouMobileProducer";
-import KugouMusicApiProducer from "./producers/KugouMusicApiProducer";
-import MiguMusicApiProducer from "./producers/MiguMusicApiProducer";
-import MusicApiProducer from "./producers/MusicApiProducer";
-import MusicInterfaceProducer from "./producers/MusicInterfaceProducer";
-import NaverAPIsProducer from "./producers/NaverAPIsProducer";
-import NaverMusicMobileProducer from "./producers/NaverMusicMobileProducer";
-import NaverMusicProducer from "./producers/NaverMusicProducer";
-import NeteaseCloudMusicApiProducer from "./producers/NeteaseCloudMusicApiProducer";
-import NodeSoundCloudProducer from "./producers/NodeSoundCloudProducer";
-import UFONetworkProducer from "./producers/UFONetworkProducer";
 
 import { getConfig } from "./utils";
 
@@ -71,23 +55,6 @@ const cleanText = (text: string, removeParen = false) => {
 export default class AudioSourceService {
     public static QUEUE_MAX_SIZE = config.caching.queueMaxSize;
 
-    public static Producers = [
-        KaiPlanetProducer,
-        NeteaseCloudMusicApiProducer,
-        MusicInterfaceProducer,
-        KugouMusicApiProducer,
-        MusicApiProducer,
-        KuGouMobileProducer,
-        NodeSoundCloudProducer,
-        HearthisProducer,
-        KuGouMobileCDNProducer,
-        MiguMusicApiProducer,
-        UFONetworkProducer,
-        NaverMusicMobileProducer,
-        NaverMusicProducer,
-        NaverAPIsProducer,
-    ];
-
     public static getSources() {
         return Source.values().map((source) => ({
             icons: source.icons,
@@ -114,6 +81,7 @@ export default class AudioSourceService {
 
         this.raceManager.proxyPool = proxyPool;
     }
+
     private privateLocationService: any;
     private privateProxyPool: any = { getProxyList() { return null; } };
     private raceManager = new RaceManager();
@@ -122,22 +90,6 @@ export default class AudioSourceService {
     private scheduleJobRunning = false;
 
     constructor() {
-        AudioSourceService.Producers.forEach((Producer) => {
-            if (Producer.instances && Producer.instances.length) {
-                return Producer.instances.forEach(({ host, port, protocol }: Instance) => {
-                    Producer.sources.forEach((source) => {
-                        source.producers.push(new Producer(host, port, protocol));
-                    });
-                });
-            }
-
-            const producer = new Producer();
-
-            Producer.sources.forEach((source) => {
-                source.producers.push(producer);
-            });
-        });
-
         schedule.scheduleJob("0 0 0 * * ?", async () => {
             if (this.scheduleJobRunning) {
                 return;

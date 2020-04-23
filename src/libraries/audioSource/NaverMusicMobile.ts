@@ -37,7 +37,7 @@ export default class NaverMusicMobile {
         }
     }
 
-    public async search(query: string|string[], { proxy, abortSignal }: IOptions = {}) {
+    public async search(query: string|string[], { proxy, abortSignal, browserPageInstance }: IOptions = {}) {
         const tracks = await this.executeInBrowser(`${this.rootUrl}${NaverMusicMobile.SEARCH_PATH}?target=track&query=${([] as string[]).concat(query).map((q) => q.replace(/\s+/g, "+")).join("+")}&sort=RELEVANCE`, () => {
             return Promise.all([...document.querySelectorAll("#addList>li")].map(async (el) => ({
                 id: (() => {
@@ -82,7 +82,7 @@ export default class NaverMusicMobile {
                     return result  && result[0];
                 })(),
             })));
-        }, { proxy, abortSignal });
+        }, { proxy, abortSignal, browserPageInstance });
 
         await Promise.all(tracks.map(async (t: any) => {
             if ((!t.artists || !t.artists.length) && t.id) {
@@ -99,7 +99,7 @@ export default class NaverMusicMobile {
         return tracks;
     }
 
-    public getTrack(trackId: string, { proxy, abortSignal }: IOptions = {}) {
+    public getTrack(trackId: string, { proxy, abortSignal, browserPageInstance }: IOptions = {}) {
         return this.executeInBrowser(`${this.rootUrl}${NaverMusicMobile.GET_TRACK_PATH}?trackId=${trackId}`, () => ({
             title: (() => {
                 const idWrapEl = document.querySelector("#titleArea span");
@@ -110,7 +110,7 @@ export default class NaverMusicMobile {
             artists: (() => [
                 ...document.querySelectorAll(".art_name a"),
             ].map((el) => el instanceof HTMLElement && el.innerText))(),
-        }), { proxy, abortSignal });
+        }), { proxy, abortSignal, browserPageInstance });
     }
 
     private async executeInBrowser(url: string, callback: () => any, {
@@ -122,6 +122,12 @@ export default class NaverMusicMobile {
 
         const browserPage = await (async (instance) => {
             if (instance) {
+                if (abortSignal) {
+                    abortSignal.addEventListener("abort", () => {
+                        instance.close();
+                    });
+                }
+
                 return instance;
             }
 
@@ -129,12 +135,6 @@ export default class NaverMusicMobile {
 
             return await browser.newPage();
         })(browserPageInstance);
-
-        if (abortSignal) {
-            abortSignal.addEventListener("abort", () => {
-                browserPage.close();
-            });
-        }
 
         try {
             await browserPage.setRequestInterception(true);

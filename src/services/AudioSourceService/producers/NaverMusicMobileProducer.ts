@@ -1,6 +1,8 @@
 import IOptions from "../IMethodOptions";
 import IProducer from "../IProducer";
 
+import BrowserService from "../../BrowserService";
+
 import Artist from "../Artist";
 import Instance from "../Instance";
 import Producer from "../Producer";
@@ -19,6 +21,8 @@ export default class extends Producer implements IProducer {
 
     public static readonly instances = config.producers.naverMusicMobile.instances
         .map(({ host, port, protocol }: any) => new Instance(host, port, protocol));
+
+    public browserService!: BrowserService;
 
     private readonly naverMusicMobile: NaverMusicMobile;
 
@@ -42,7 +46,9 @@ export default class extends Producer implements IProducer {
                 return await retry(async () => {
                     try {
                         return await this.naverMusicMobile.search(keywords, {
-                            proxy: proxyPool.getRandomProxy("KR") || undefined,
+                            browserPageInstance: await this.browserService.createBrowserPage({
+                                proxy: proxyPool.getRandomProxy("KR") || undefined,
+                            }),
                         });
                     } catch (e) {
                         // console.log(e);
@@ -54,7 +60,9 @@ export default class extends Producer implements IProducer {
                 // console.log(e);
 
                 try {
-                    return await this.naverMusicMobile.search(keywords);
+                    return await this.naverMusicMobile.search(keywords, {
+                        browserPageInstance: await this.browserService.createBrowserPage(),
+                    });
                 } catch (e) {
                     // console.log(e);
 

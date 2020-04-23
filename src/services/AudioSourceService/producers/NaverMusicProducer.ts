@@ -1,6 +1,8 @@
 import IOptions from "../IMethodOptions";
 import IProducer from "../IProducer";
 
+import BrowserService from "../../BrowserService";
+
 import Artist from "../Artist";
 import Instance from "../Instance";
 import List from "../List";
@@ -20,6 +22,8 @@ export default class NaverMusicProducer extends Producer implements IProducer {
 
     public static readonly instances = config.producers.naverMusic.instances
         .map(({ host, port, protocol }: any) => new Instance(host, port, protocol));
+
+    public browserService!: BrowserService;
 
     private readonly naverMusic: NaverMusic;
 
@@ -41,9 +45,11 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                 return await retry(async () => {
                     try {
                         return await this.naverMusic.search(keywords, {
+                            browserPageInstance: await this.browserService.createBrowserPage({
+                                proxy: proxyPool.getRandomProxy("KR") || undefined,
+                            }),
                             page: (typeof offset === "number" && typeof limit === "number") ? Math.ceil(offset / limit)
                                 : 1,
-                            proxy: proxyPool.getRandomProxy("KR") || undefined,
                         });
                     } catch (e) {
                         // console.log(e);
@@ -56,6 +62,7 @@ export default class NaverMusicProducer extends Producer implements IProducer {
 
                 try {
                     return await this.naverMusic.search(keywords, {
+                        browserPageInstance: await this.browserService.createBrowserPage(),
                         page: (typeof offset === "number" && typeof limit === "number") ? Math.ceil(offset / limit) : 1,
                     });
                 } catch (e) {
@@ -66,7 +73,7 @@ export default class NaverMusicProducer extends Producer implements IProducer {
             }
         })()) || [];
 
-        const naverMusic = this.naverMusic;
+        const that = this;
 
         return new class extends TrackList<any> { // tslint:disable-line
             public async get(index: number) {
@@ -80,8 +87,10 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                     try {
                         return await retry(async () => {
                             try {
-                                return await naverMusic.getAlbum(track.albumId, {
-                                    proxy: proxyPool.getRandomProxy("KR") || undefined,
+                                return await that.naverMusic.getAlbum(track.albumId, {
+                                    browserPageInstance: await that.browserService.createBrowserPage({
+                                        proxy: proxyPool.getRandomProxy("KR") || undefined,
+                                    }),
                                 });
                             } catch (e) {
                                 // console.log(e);
@@ -93,7 +102,9 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                         // console.log(e);
 
                         try {
-                            return await naverMusic.getAlbum(track.albumId);
+                            return await that.naverMusic.getAlbum(track.albumId, {
+                                browserPageInstance: await that.browserService.createBrowserPage(),
+                            });
                         } catch (e) {
                             // console.log(e);
 
@@ -123,8 +134,9 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                         try {
                             return (await this.naverMusic.getTop100(d, {
                                 abortSignal,
-                                includeThumb: false,
-                                proxy: this.proxyPool.getRandomProxy("KR") || undefined,
+                                browserPageInstance: await this.browserService.createBrowserPage({
+                                    proxy: this.proxyPool.getRandomProxy("KR") || undefined,
+                                }),
                             })) || null;
                         } catch (e) {
                             // console.log(e);
@@ -136,7 +148,10 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                     // console.log(e);
 
                     try {
-                        return (await this.naverMusic.getTop100(d, { includeThumb: false, abortSignal })) || null;
+                        return (await this.naverMusic.getTop100(d, {
+                            abortSignal,
+                            browserPageInstance: await this.browserService.createBrowserPage(),
+                        })) || null;
                     } catch (e) {
                         // console.log(e);
 
@@ -152,13 +167,15 @@ export default class NaverMusicProducer extends Producer implements IProducer {
     }
 
     public async getList(id: string, source: Source, { playbackQuality, limit, offset, abortSignal }: IOptions = {}) {
-        const list = await (async () => {
+        const listPromise = (async () => {
             try {
                 return await retry(async () => {
                     try {
                         return (await this.naverMusic.getTop100(id, {
                             abortSignal,
-                            proxy: this.proxyPool.getRandomProxy("KR") || undefined,
+                            browserPageInstance: await this.browserService.createBrowserPage({
+                                proxy: this.proxyPool.getRandomProxy("KR") || undefined,
+                            }),
                         })) || null;
                     } catch (e) {
                         // console.log(e);
@@ -170,7 +187,10 @@ export default class NaverMusicProducer extends Producer implements IProducer {
                 // console.log(e);
 
                 try {
-                    return (await this.naverMusic.getTop100(id, { abortSignal })) || null;
+                    return (await this.naverMusic.getTop100(id, {
+                        abortSignal ,
+                        browserPageInstance: await this.browserService.createBrowserPage(),
+                    })) || null;
                 } catch (e) {
                     // console.log(e);
 
@@ -179,7 +199,49 @@ export default class NaverMusicProducer extends Producer implements IProducer {
             }
         })();
 
+        const thumbsPromise = (async () => {
+            try {
+                return await retry(async () => {
+                    try {
+                        return (await this.naverMusic.getTop100Thumbs(id, {
+                            abortSignal,
+                            browserPageInstance: await this.browserService.createBrowserPage({
+                                proxy: this.proxyPool.getRandomProxy("KR") || undefined,
+                            }),
+                        })) || null;
+                    } catch (e) {
+                        // console.log(e);
+
+                        throw e;
+                    }
+                }, this.proxyPool.getRandomProxy("KR") ? Producer.PROXY_RETRY_TIMES + 1 : 1);
+            } catch (e) {
+                // console.log(e);
+
+                try {
+                    return (await this.naverMusic.getTop100Thumbs(id, {
+                        abortSignal ,
+                        browserPageInstance: await this.browserService.createBrowserPage(),
+                    })) || null;
+                } catch (e) {
+                    // console.log(e);
+
+                    throw e;
+                }
+            }
+        })();
+
+        const list = await listPromise;
+
         if (list && list.tracks) {
+            const thumbs = await thumbsPromise;
+
+            list.tracks.forEach((t: any) => {
+                if (thumbs[t.id]) {
+                    t.thumb = thumbs[t.id];
+                }
+            });
+
             return list.tracks.map((t: any) =>
                 new Track(t.id, t.name, t.artists.map((a: any) => new Artist(a.replace(/(?<=\S+)\s*\((?:\S|\s)+\)\s*/, ""), {
                     aliases: (() => {
