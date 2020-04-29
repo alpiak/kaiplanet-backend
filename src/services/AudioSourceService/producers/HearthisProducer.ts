@@ -1,4 +1,5 @@
 import IMethodOptions from "../IMethodOptions";
+import IProducer from "../IProducer";
 
 import Artist from "../Artist";
 import Instance from "../Instance";
@@ -41,7 +42,7 @@ class HearthisTrackList extends TrackList<any> {
     }
 }
 
-export default class HearthisProducer extends Producer { // tslint:disable-line
+export default class HearthisProducer extends Producer implements IProducer { // tslint:disable-line
     public static readonly sources = [Source.hearthis];
 
     public static readonly instances = config.producers.hearthis.instances

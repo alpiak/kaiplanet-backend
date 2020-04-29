@@ -57,6 +57,7 @@ export default class AudioSourceService {
 
     public static getSources() {
         return Source.values().map((source) => ({
+            demo: source.demo,
             icons: source.icons,
             id: source.id,
             name: source.name,

@@ -11,6 +11,7 @@ const config = getConfig();
 
 export default class Source {
     public static readonly kaiPlanet = new Source("kaiplanet", "kaiplanet.net", {
+        demo: true,
         icons: [
             "https://kai-player.oss-cn-shanghai.aliyuncs.com/kaiplanet.ico",
             `/proxy/${config.assetBaseUrl}/favicon.ico`,
@@ -37,6 +38,7 @@ export default class Source {
     });
 
     public static readonly soundCloud = new Source("soundcloud", "SoundCloud", {
+        demo: true,
         icons: [
             "https://kai-player.oss-cn-shanghai.aliyuncs.com/soundcloud.ico",
             "/proxy/https://soundcloud.com/favicon.ico",
@@ -93,6 +95,7 @@ export default class Source {
     });
 
     public static readonly hearthis =  new Source("hearthis", "hearthis.at", {
+        demo: true,
         icons: [
             "https://kai-player.oss-cn-shanghai.aliyuncs.com/hearthis.ico",
             "/proxy/https://hearthis.at/favicon.ico",
@@ -152,12 +155,14 @@ export default class Source {
 
     public readonly id: string;
     public readonly name: string;
+    public readonly demo: boolean;
     public readonly producers: IProducer[] = [];
     public readonly icons: string[] = [];
 
-    constructor(id: string, name: string, { icons }: { icons?: string[] } = {}) {
+    constructor(id: string, name: string, { demo = false, icons }: { demo?: boolean, icons?: string[] } = {}) {
         this.id = id;
         this.name = name;
+        this.demo = demo;
 
         if (icons) {
             this.icons = icons;
