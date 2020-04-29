@@ -110,7 +110,10 @@ module.exports = ({ AudioSourceService }) => class {
                 throw new Error("Source not provided or doesn't exist.");
             }
 
-            return (await this._audioSourceService.getLists({ sourceIds: reqBody.source.trim() }));
+            return (await this._audioSourceService.getLists({
+                sourceIds: reqBody.source.trim(),
+                timeout: reqBody.timeout,
+            }));
         }));
     }
 

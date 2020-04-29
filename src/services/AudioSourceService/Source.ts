@@ -255,14 +255,14 @@ export default class Source {
         return removeDuplicatedPlaybackSources(playbackSources);
     }
 
-    public async getLists({ limit, offset, producerRating }: IOptions = {}) {
+    public async getLists({ limit, offset, producerRating, abortSignal }: IOptions = {}) {
         const sortedProducers = producerRating ? this.getSortedProducers(producerRating) : this.producers;
 
         let err;
 
         for (const producer of sortedProducers) {
             try {
-                const lists = await producer.getLists(this);
+                const lists = await producer.getLists(this, { abortSignal });
 
                 if (lists && lists.length) {
                     return lists;

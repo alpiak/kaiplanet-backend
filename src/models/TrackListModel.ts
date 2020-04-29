@@ -50,4 +50,4 @@ schema.index({ sourceId: 1, id: 1 });
 schema.plugin(createOrUpdate);
 
 // @ts-ignore
-module.exports = kaiPlanetConnection.model("TrackList", schema);
+export default kaiPlanetConnection.model("TrackList", schema);

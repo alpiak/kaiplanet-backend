@@ -64,6 +64,8 @@ export default class AudioSourceService {
         }));
     }
 
+    private static timeoutError = new Error("Timeout fetching tracks.");
+
     public cacheService: any;
 
     set locationService(locationService: any) {
@@ -255,7 +257,15 @@ export default class AudioSourceService {
             .slice(0, limit);
     }
 
-    public async getLists({ sourceIds, limit, offset, sourceRating, producerRating, noCache = false }: IOptions = {}) {
+    public async getLists({
+        sourceIds,
+        limit,
+        offset,
+        sourceRating,
+        producerRating,
+        noCache = false,
+        timeout,
+    }: IOptions = {}) {
         if (!Array.isArray(sourceIds) && sourceIds) {
             const source = Source.fromId(sourceIds);
 
@@ -265,7 +275,11 @@ export default class AudioSourceService {
 
             if (!noCache) {
                 try {
-                    const docs = await TrackListModel.find({ sourceId: source.id }, "id name").exec();
+                    const docs = await Promise.race([
+                        TrackListModel.find({ sourceId: source.id }, "id name").exec(),
+                    ].concat(timeout ? new Promise<null>((resolve, reject) => setTimeout(() => {
+                        reject(AudioSourceService.timeoutError);
+                    }, timeout)) : []));
 
                     if (!docs || !docs.length) {
                         throw new Error("No doc cached.");
@@ -280,7 +294,15 @@ export default class AudioSourceService {
                 }
             }
 
-            const lists = await source.getLists({ limit, offset, producerRating });
+            const abortController = new AbortController();
+
+            const lists = await Promise.race([
+                source.getLists({ limit, offset, producerRating, abortSignal: abortController.signal }),
+            ].concat(timeout ? new Promise<null>((resolve, reject) => setTimeout(() => {
+                reject(AudioSourceService.timeoutError);
+
+                abortController.abort();
+            }, timeout)) : []));
 
             if (!lists) {
                 return null;
@@ -308,40 +330,59 @@ export default class AudioSourceService {
             return ids.map((sourceId) => Source.fromId(sourceId));
         })(sourceIds);
 
-        return await Promise.all(sources.map(async (source) => {
-            if (!source) {
-                return null;
-            }
+        return await Promise.all(sources.map((source) => {
+            const abortController = new AbortController();
 
-            if (!noCache) {
-                try {
-                    const docs = await TrackListModel.find({ sourceId: source.id }, "id name").exec();
-
-                    if (!docs || !docs.length) {
-                        throw new Error("No doc cached.");
-                    }
-
-                    return docs.map((doc: any) => ({
-                        id: doc.id,
-                        name: doc.name,
-                    }));
-                } catch (e) {
-                    // console.log(e);
+            return Promise.race([(async () => {
+                if (!source) {
+                    return null;
                 }
-            }
 
-            const lists = await source.getLists({ limit, offset, producerRating });
+                if (!noCache) {
+                    try {
+                        const docs = await TrackListModel.find({sourceId: source.id}, "id name").exec();
 
-            if (!lists) {
-                return null;
-            }
+                        if (!docs || !docs.length) {
+                            throw new Error("No doc cached.");
+                        }
 
-            this.cacheTrackLists(lists);
+                        return docs.map((doc: any) => ({
+                            id: doc.id,
+                            name: doc.name,
+                        }));
+                    } catch (e) {
+                        // console.log(e);
+                    }
+                }
 
-            return lists.map((list) => ({
-                id: list.id,
-                name: list.name,
-            }));
+                const lists = await source.getLists({
+                    abortSignal: abortController.signal,
+                    limit,
+                    offset,
+                    producerRating,
+                });
+
+                if (!lists) {
+                    return null;
+                }
+
+                (async () => {
+                    try {
+                        await this.cacheTrackLists(lists);
+                    } catch (e) {
+                        // console.log(e);
+                    }
+                })();
+
+                return lists.map((list) => ({
+                    id: list.id,
+                    name: list.name,
+                }));
+            })()].concat(timeout ? new Promise<null>((resolve, reject) => setTimeout(() => {
+                reject(AudioSourceService.timeoutError);
+
+                abortController.abort();
+            }, timeout)) : []));
         }));
     }
 

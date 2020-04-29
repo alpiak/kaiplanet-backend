@@ -6,4 +6,5 @@ export default interface IServiceMethodOptions extends IMethodOptions {
     noCache?: boolean;
     retrievePlaybackSource?: boolean;
     withPlaybackSourceOnly?: boolean;
+    timeout?: number;
 }
