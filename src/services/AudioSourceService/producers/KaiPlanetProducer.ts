@@ -12,10 +12,24 @@ export default class KaiPlanetProducer extends Producer implements IProducer {
 
     public async getPlaybackSources(id: string, source: Source, { playbackQuality = 0 } = {}) {
         try {
-            return [new PlaybackSource(["http://kaiplanet.net/demo.mp3"], { quality: 0 })];
+            return [new PlaybackSource([
+                "https://audio-waves.oss-cn-shanghai.aliyuncs.com/demo.mp3",
+                "https://kaiplanet.net/demo.mp3",
+                "http://kaiplanet.net/demo.mp3",
+            ], { quality: 0 })];
         } catch (e) {
             return [];
         }
+    }
+
+    public async getRecommends(source: Source, inputTrack: Track) {
+        if (inputTrack) {
+            return null;
+        }
+
+        return [new Track("0", "Demo", [new Artist("Unknown")], source, {
+            picture: "https://audio-waves.oss-cn-shanghai.aliyuncs.com/sea.jpg",
+        })];
     }
 
     public async getLists(source: Source) {
@@ -24,13 +38,13 @@ export default class KaiPlanetProducer extends Producer implements IProducer {
 
     public async getList(id: string, source: Source, { playbackQuality = 0 } = {}) {
         return [new Track("0", "Demo", [new Artist("Unknown")], source, {
-            picture: "http://kaiplanet.net/lighthouse.jpg",
+            picture: "https://audio-waves.oss-cn-shanghai.aliyuncs.com/sea.jpg",
         })];
     }
 
     public async getTrack(id: string, source: Source, { playbackQuality = 0 } = {}) {
         return new Track("0", "Demo", [new Artist("Unknown")], source, {
-            picture: "http://kaiplanet.net/lighthouse.jpg",
+            picture: "https://audio-waves.oss-cn-shanghai.aliyuncs.com/sea.jpg",
         });
     }
 }
