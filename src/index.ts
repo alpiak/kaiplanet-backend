@@ -13,19 +13,15 @@ import * as compression from "compression";
 // @ts-ignore
 import * as any from "promise.any";
 
-import ProxyPool from "./services/ProxyService/ProxyPool";
+import ProxyPool from "./ProxyPool";
 
 import credentials from "./credentials";
 
-any.shim();
-
-// @ts-ignore
-import * as getProxyService from "./services/ProxyService";
-const ProxyService = getProxyService(process.env.NODE_ENV);
 import AudioSourceService from "./services/AudioSourceService";
 import BrowserService from "./services/BrowserService";
 // @ts-ignore
 import * as getCacheService from "./services/CacheService";
+import ProxyService from "./services/ProxyService/index";
 const CacheService = getCacheService(process.env.NODE_ENV);
 // @ts-ignore
 import * as getLocationService from "./services/LocationService";
@@ -68,6 +64,7 @@ import NeteaseCloudMusicApiProducer from "./services/AudioSourceService/producer
 import NodeSoundCloudProducer from "./services/AudioSourceService/producers/NodeSoundCloudProducer";
 import UFONetworkProducer from "./services/AudioSourceService/producers/UFONetworkProducer";
 
+any.shim();
 Bluebird.promisifyAll(fs);
 
 const app = express();
@@ -84,6 +81,7 @@ const locationService = new LocationService();
 const shorteningService = new ShorteningService();
 const browserService = new BrowserService();
 
+proxyService.browserService = browserService;
 audioSourceService.cacheService = cacheService;
 audioSourceService.locationService = locationService;
 
@@ -127,6 +125,7 @@ audioSourceService.locationService = locationService;
 const proxyPool = new ProxyPool({ proxyService });
 
 audioSourceService.proxyPool = proxyPool;
+proxyService.proxyPool = proxyPool;
 
 const proxyController = new ProxyController({ proxyPool, proxyService, cacheService, locationService });
 const audioController = new AudioController();

@@ -1,4 +1,4 @@
-import { request } from "../utils";
+import { fetchData } from "../utils";
 
 interface IOptions { abortSignal?: AbortSignal; }
 
@@ -22,7 +22,7 @@ export default class MusicInterface {
     }
 
     public async search(key: string, pageNum?: number, pageSize?: number, { abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             hostname: this.host,
             method: "GET",
@@ -40,7 +40,7 @@ export default class MusicInterface {
     }
 
     public async getSongUrllist(ids: string[], { abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             hostname: this.host,
             method: "GET",
@@ -58,7 +58,7 @@ export default class MusicInterface {
     }
 
     public async getToplists({ abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             hostname: this.host,
             method: "GET",
@@ -76,7 +76,7 @@ export default class MusicInterface {
     }
 
     public async getSongList(id: string, { abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             hostname: this.host,
             method: "GET",
@@ -94,7 +94,7 @@ export default class MusicInterface {
     }
 
     public async getAlbumImg(albummid: string, singerMid: string, { abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             hostname: this.host,
             method: "GET",

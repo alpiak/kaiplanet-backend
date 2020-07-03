@@ -15,7 +15,7 @@ import * as contentRange from "content-range";
 
 import ICreateMiddleware from "./ICreateMiddleware";
 
-import ProxyPool from "../services/ProxyService/ProxyPool";
+import ProxyPool from "../ProxyPool";
 
 const REQUEST_TIMEOUT = 1000 * 60 * 2;
 const REF_REGEXP = "(?:href|src|action)=\"\\s*((?:\\S|\\s)*?)\"";
@@ -274,6 +274,8 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
 
     public createMiddleware() {
         return async (req: Request, res: Response, next: NextFunction) => {
+            let aborted = false;
+
             try {
                 const urlStr = req.url.split("?")[0];
                 const parsedUrlStr = parseBase64(urlStr.replace(/^\/+/, "").replace(/\/+$/, ""));
@@ -307,14 +309,13 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
 
                 const reqsInRace: http.ClientRequest[] = [];
 
-                let raceEnded = false;
-                let aborted = false;
-
                 req.on("close", () => {
                     aborted = true;
 
-                    reqsInRace.forEach((r) => r.abort());
+                    reqsInRace.forEach((r) => r.destroy());
                 });
+
+                let raceEnded = false;
 
                 const originRes = await (async () => {
                     if (this.cacheService.exists(targetUrl.href)) {
@@ -325,7 +326,7 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
                         }
                     }
 
-                    let proxies: string[];
+                    let proxies: string[]|undefined;
                     let failCount = 0;
 
                     const sendRequest = (proxy?: string) => new Promise<http.IncomingMessage>((resolve, reject) => {
@@ -366,14 +367,14 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
 
                         const targetReq: http.ClientRequest = client.request(options, (resInRace) => {
                             if (raceEnded) {
-                                return targetReq.abort();
+                                return targetReq.destroy();
                             }
 
                             resolve(resInRace);
 
                             for (const reqInRace of reqsInRace) {
                                 if (reqInRace !== targetReq) {
-                                    reqInRace.abort();
+                                    reqInRace.destroy();
                                 }
                             }
                         });
@@ -393,13 +394,13 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
 
                             if (!proxies || failCount >= proxies.length + 1) {
                                 reject(new Error("Request timeout."));
-                                targetReq.abort();
+                                targetReq.destroy();
                             }
                         });
 
                         pipe(req, targetReq, (err: Error) => {
                             if (err) {
-                                return next(err);
+                                return reject(err);
                             }
                         });
                     });
@@ -436,7 +437,7 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
                             return [];
                         }
 
-                        return proxies.map(sendRequest);
+                        return proxies ? proxies.map(sendRequest) : [];
                     })())]);
                 })() as http.IncomingMessage;
 
@@ -595,7 +596,9 @@ export default class ProxyMiddlewareFactory implements ICreateMiddleware { // ts
                     });
                 }
             } catch (err) {
-                next(err);
+                if (!aborted) {
+                    next(err);
+                }
             }
         };
     }

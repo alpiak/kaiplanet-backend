@@ -1,5 +1,5 @@
 // @ts-ignore
-import * as ProxyService from "../ProxyService";
+import ProxyService from "./services/ProxyService/index";
 
 export default class ProxyPool {
     private readonly proxyService: ProxyService;
@@ -14,13 +14,21 @@ export default class ProxyPool {
 
     // TODO: remove this function after related code updated
     public getRandomProxy(areaCode: string) {
-        const proxies = this.getProxyList(areaCode).slice(0, ProxyService.MAX_PROXY_NUM);
+        const proxies = this.getProxyList(areaCode);
 
-        return proxies[Math.floor(proxies.length * Math.random())];
+        if (!proxies) {
+            return;
+        }
+
+        return proxies.slice(0, ProxyService.MAX_PROXY_NUM)[Math.floor(proxies.length * Math.random())];
     }
 
     public getRandomProxies(areaCode = "GLOBAL", protocol = "all", num = 1, range = .5) {
         const proxies = this.getProxyList(areaCode, protocol);
+
+        if (!proxies) {
+            return;
+        }
 
         if (proxies.length <= num) {
             return proxies;

@@ -1,4 +1,4 @@
-import { request } from "../utils";
+import { fetchData } from "../utils";
 
 interface IOptions {
     page?: number;
@@ -36,7 +36,7 @@ export default class {
     }
 
     private async request(path: string, data: any, dataPath: string[] = [], { proxy, abortSignal }: IOptions = {}) {
-        const res: any = await request({
+        const res: any = await fetchData({
             abortSignal,
             data,
             hostname: this.host,

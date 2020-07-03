@@ -11,7 +11,8 @@ import * as mime from "mime";
 import * as sendRanges from "send-ranges";
 
 import IRange from "../services/ProxyService/IRange";
-import ProxyPool from "../services/ProxyService/ProxyPool";
+
+import ProxyPool from "../ProxyPool";
 
 import ProxyMiddlewareFactory from "../middlewares/ProxyMiddlewareFactory";
 

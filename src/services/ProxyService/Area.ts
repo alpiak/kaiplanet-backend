@@ -1,14 +1,8 @@
-module.exports = () => class Area {
-    static GLOBAL = new Area("GLOBAL");
-    static CN = new Area("CN");
+export default class Area {
+    public static GLOBAL = new Area("GLOBAL");
+    public static CN = new Area("CN");
 
-    _code;
-
-    constructor(code) {
-        this._code = code;
-    }
-
-    static values() {
+    public static values() {
         const values = [];
 
         for (const key in Area) {
@@ -16,6 +10,7 @@ module.exports = () => class Area {
                 continue;
             }
 
+            // @ts-ignore
             const value = Area[key];
 
             if (value instanceof Area) {
@@ -26,7 +21,7 @@ module.exports = () => class Area {
         return values;
     }
 
-    static fromCode(code) {
+    public static fromCode(code: string) {
         if (!code) {
             return null;
         }
@@ -36,11 +31,20 @@ module.exports = () => class Area {
                 continue;
             }
 
+            // @ts-ignore
             const value = Area[key];
 
-            if (value instanceof Area && value._code === code) {
+            if (value instanceof Area && value.code === code) {
                 return value;
             }
         }
+
+        return null;
     }
-};
+
+    public readonly code: string;
+
+    constructor(code: string) {
+        this.code = code;
+    }
+}
