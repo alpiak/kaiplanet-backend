@@ -21,7 +21,7 @@ import AudioSourceService from "./services/AudioSourceService";
 import BrowserService from "./services/BrowserService";
 // @ts-ignore
 import * as getCacheService from "./services/CacheService";
-import ProxyService from "./services/ProxyService/index";
+import ProxyService from "./services/ProxyService";
 const CacheService = getCacheService(process.env.NODE_ENV);
 // @ts-ignore
 import * as getLocationService from "./services/LocationService";

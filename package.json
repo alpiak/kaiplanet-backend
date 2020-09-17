@@ -47,6 +47,7 @@
     "express-sessions": "^1.0.6",
     "formidable": "^1.1.1",
     "fs-blob-store": "^5.2.1",
+    "fs-utils": "^0.7.0",
     "hanzi-tools": "^1.2.20",
     "mime": "^2.4.4",
     "mississippi": "^4.0.0",
